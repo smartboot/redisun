@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
     <groupId>tech.smartboot</groupId>
     <artifactId>redisun</artifactId>
     <name>redisun</name>
@@ -11,15 +11,19 @@
     <properties>
         <smart-socket.version>1.7.1</smart-socket.version>
     </properties>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.github.smartboot.socket</groupId>
-                <artifactId>aio-pro</artifactId>
-                <version>${smart-socket.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>io.github.smartboot.socket</groupId>
+            <artifactId>aio-pro</artifactId>
+            <version>${smart-socket.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <url>https://github.com/smartboot/redisun</url>
 

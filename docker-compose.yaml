@@ -1,0 +1,22 @@
+networks:
+  redis-network:
+    driver: bridge
+services:
+  redis:
+      container_name: redis
+      hostname: redis
+      image: redis:alpine
+      networks:
+        redis-network: null
+      restart: always
+      privileged: true
+      security_opt:
+        - no-new-privileges:true
+      user: root:root
+      ports:
+        - 6379:6379
+      logging:
+        driver: "json-file"
+        options:
+          max-size: "100m"
+          max-file: "1"
