@@ -36,6 +36,10 @@ public abstract class RedisResponse<T> {
         return value;
     }
 
+    public void setValue(T value) {
+        this.value = value;
+    }
+
     protected int readInt(ByteBuffer readBuffer) {
         int v = 0;
         readBuffer.mark();
@@ -73,5 +77,17 @@ public abstract class RedisResponse<T> {
             default:
                 throw new RedisunException("数据格式错误:" + ((char) type));
         }
+    }
+
+    public static RedisResponse ofString(String value) {
+        BulkStringResponse bulkStringResponse = new BulkStringResponse();
+        bulkStringResponse.setValue(value);
+        return bulkStringResponse;
+    }
+
+    public static RedisResponse ofInteger(int value) {
+        IntegerResponse integerResponse = new IntegerResponse();
+        integerResponse.setValue(value);
+        return integerResponse;
     }
 }

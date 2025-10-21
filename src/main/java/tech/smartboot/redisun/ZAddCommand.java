@@ -6,5 +6,5 @@ package tech.smartboot.redisun;
  */
 public interface ZAddCommand {
 
-    boolean add(String key, double score, String member);
+    boolean add(String key, int score, String member);
 }

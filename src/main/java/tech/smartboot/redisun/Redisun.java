@@ -9,9 +9,12 @@ import org.smartboot.socket.timer.TimerTask;
 import org.smartboot.socket.transport.AioQuickClient;
 import org.smartboot.socket.transport.AioSession;
 import org.smartboot.socket.transport.WriteBuffer;
+import tech.smartboot.redisun.response.ArrayResponse;
 import tech.smartboot.redisun.response.RedisResponse;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -67,12 +70,19 @@ public final class Redisun {
     public ZAddCommand zadd() {
         return new ZAddCommand() {
             @Override
-            public boolean add(String key, double score, String member) {
+            public boolean add(String key, int score, String member) {
+                ArrayResponse req = new ArrayResponse();
+                List<RedisResponse> param = new ArrayList<>();
+                req.setValue(param);
+                param.add(RedisResponse.ofString("ZADD"));
+                param.add(RedisResponse.ofString(key));
+                param.add(RedisResponse.ofInteger(score));
+                param.add(RedisResponse.ofString(member));
                 execute(new Command() {
-
                     @Override
                     protected void writeTo(WriteBuffer writeBuffer) throws IOException {
-
+                        // 构造 ZADD 命令的 RESP 格式
+                        // *4\r\n$4\r\nZADD\r\n$<key长度>\r\n<key>\r\n$<score长度>\r\n<score>\r\n$<member长度>\r\n<member>\r\n
                     }
                 });
                 return false;
