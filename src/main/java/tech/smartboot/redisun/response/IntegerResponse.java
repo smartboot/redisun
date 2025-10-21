@@ -8,13 +8,12 @@ import java.nio.ByteBuffer;
  * @author 三刀
  * @version v1.0 10/21/25
  */
-public class IntegerResponse extends RedisResponse {
+public class IntegerResponse extends RedisResponse<Integer> {
     private static final byte DECODE_STATE_INIT = 0;
     private static final byte DECODE_STATE_VALUE = 1;
     private static final byte DECODE_STATE_END = 2;
     private byte state = DECODE_STATE_INIT;
     private boolean isNegative;
-    private int value;
 
     @Override
     public boolean decode(ByteBuffer readBuffer) {
@@ -34,9 +33,10 @@ public class IntegerResponse extends RedisResponse {
                     state = DECODE_STATE_VALUE;
                     break;
                 case DECODE_STATE_VALUE:
-                    value = readInt(readBuffer);
-                    if (value >= 0) {
+                    int v = readInt(readBuffer);
+                    if (v >= 0) {
                         state = DECODE_STATE_END;
+                        value = isNegative ? -v : v;
                         return true;
                     }
                     return false;
@@ -47,9 +47,6 @@ public class IntegerResponse extends RedisResponse {
         return false;
     }
 
-    public int getValue() {
-        return isNegative ? -value : value;
-    }
 
     @Override
     public String toString() {

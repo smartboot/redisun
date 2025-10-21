@@ -8,7 +8,11 @@ import org.smartboot.socket.timer.HashedWheelTimer;
 import org.smartboot.socket.timer.TimerTask;
 import org.smartboot.socket.transport.AioQuickClient;
 import org.smartboot.socket.transport.AioSession;
+import org.smartboot.socket.transport.WriteBuffer;
+import tech.smartboot.redisun.response.RedisResponse;
 
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
@@ -61,9 +65,44 @@ public final class Redisun {
     }
 
     public ZAddCommand zadd() {
-        return new ZAddCommand();
+        return new ZAddCommand() {
+            @Override
+            public boolean add(String key, double score, String member) {
+                execute(new Command() {
+
+                    @Override
+                    protected void writeTo(WriteBuffer writeBuffer) throws IOException {
+
+                    }
+                });
+                return false;
+            }
+        };
     }
 
+    private CompletableFuture<RedisResponse> execute(Command command) {
+        CompletableFuture<RedisResponse> future = new CompletableFuture<>();
+        try {
+            AioQuickClient client = acquireConnection();
+            AioSession session = client.getSession();
+            future.whenComplete((redisResponse, throwable) -> {
+                resuingClients.offer(client);
+            });
+            RedisSession redisSession = session.getAttachment();
+            if (redisSession.getFuture() != null || redisSession.getDecodingResponse() != null) {
+                throw new IllegalStateException("当前session正在执行其他命令");
+            }
+            redisSession.setFuture(future);
+            synchronized (client) {
+                command.writeTo(session.writeBuffer());
+                session.writeBuffer().flush();
+
+            }
+        } catch (Throwable e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
 
     private AioQuickClient acquireConnection() throws Throwable {
         AioQuickClient client;
@@ -111,8 +150,12 @@ public final class Redisun {
             client.start(options.group());
         }
         clients.put(client, client);
+        resuingClients.offer(client);
         startConnectionMonitor();
-
+        execute(new HelloCommand()).thenAccept(redisResponse -> {
+            HelloCommand.Response response = HelloCommand.toResponse(redisResponse);
+            System.out.println(response);
+        }).get();
         return client;
     }
 

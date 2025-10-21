@@ -11,12 +11,11 @@ import java.util.List;
  * @author 三刀
  * @version v1.0 10/21/25
  */
-public class ArrayResponse extends RedisResponse {
+public class ArrayResponse extends RedisResponse<List<RedisResponse>> {
     private static final byte DECODE_STATE_INIT = 0;
     private static final byte DECODE_STATE_ITEM = 1;
     private static final byte DECODE_STATE_END = 2;
     private byte state = DECODE_STATE_INIT;
-    private List<RedisResponse> arrays;
     private int count;
     private RedisResponse item;
 
@@ -28,10 +27,10 @@ public class ArrayResponse extends RedisResponse {
                     count = readInt(readBuffer);
                     if (count == 0) {
                         state = DECODE_STATE_END;
-                        arrays = Collections.emptyList();
+                        value = Collections.emptyList();
                         return true;
                     } else if (count > 0) {
-                        arrays = new ArrayList<>(count);
+                        value = new ArrayList<>(count);
                         state = DECODE_STATE_ITEM;
                     } else {
                         return false;
@@ -41,7 +40,7 @@ public class ArrayResponse extends RedisResponse {
                     if (item == null) {
                         item = RedisResponse.newInstance(readBuffer.get());
                     } else if (item.decode(readBuffer)) {
-                        arrays.add(item);
+                        value.add(item);
                         item = null;
                         count--;
                         if (count == 0) {
@@ -55,12 +54,5 @@ public class ArrayResponse extends RedisResponse {
             }
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return "ArrayResponse{" +
-                "arrays=" + arrays +
-                '}';
     }
 }

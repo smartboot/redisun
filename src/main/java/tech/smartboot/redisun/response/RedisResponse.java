@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
  * @author 三刀
  * @version v1.0 10/21/25
  */
-public abstract class RedisResponse {
+public abstract class RedisResponse<T> {
     public static final byte CR = '\r';
     public static final byte LF = '\n';
     public static final byte SP = ' ';
@@ -28,8 +28,13 @@ public abstract class RedisResponse {
     public static final byte RESP_DATA_TYPE_SET = '~';
     public static final byte RESP_DATA_TYPE_ATTRIBUTE = '|';
     public static final byte RESP_DATA_TYPE_PUSH = '>';
+    protected T value;
 
     abstract public boolean decode(ByteBuffer readBuffer);
+
+    public final T getValue() {
+        return value;
+    }
 
     protected int readInt(ByteBuffer readBuffer) {
         int v = 0;

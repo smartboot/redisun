@@ -9,8 +9,6 @@ import java.nio.ByteBuffer;
  * @version v1.0 10/21/25
  */
 public class StringResponse extends RedisResponse {
-    private String value;
-
     @Override
     public boolean decode(ByteBuffer readBuffer) {
         int start = readBuffer.position();
@@ -35,9 +33,6 @@ public class StringResponse extends RedisResponse {
         return false;
     }
 
-    public String getValue() {
-        return value;
-    }
 
     @Override
     public String toString() {

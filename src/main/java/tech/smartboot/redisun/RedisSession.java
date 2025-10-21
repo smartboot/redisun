@@ -15,7 +15,7 @@ public class RedisSession {
      * 正在解码的响应
      */
     private RedisResponse decodingResponse;
-    private CompletableFuture<RedisResponse> future = new CompletableFuture<>();
+    private CompletableFuture<RedisResponse> future;
 
     public RedisSession(AioSession session) {
         this.session = session;

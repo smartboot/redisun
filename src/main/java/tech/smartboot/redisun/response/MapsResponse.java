@@ -11,16 +11,15 @@ import java.util.Map;
  * @author 三刀
  * @version v1.0 10/21/25
  */
-public class MapsResponse extends RedisResponse {
+public class MapsResponse extends RedisResponse<Map<RedisResponse, RedisResponse>> {
     private static final byte DECODE_STATE_INIT = 0;
     private static final byte DECODE_STATE_KEY = 1;
     private static final byte DECODE_STATE_VALUE = 2;
     private static final byte DECODE_STATE_END = 3;
     private byte state = DECODE_STATE_INIT;
-    private Map<RedisResponse, RedisResponse> maps;
     private int count;
     private RedisResponse key;
-    private RedisResponse value;
+    private RedisResponse val;
 
     @Override
     public boolean decode(ByteBuffer readBuffer) {
@@ -30,10 +29,10 @@ public class MapsResponse extends RedisResponse {
                     count = readInt(readBuffer);
                     if (count == 0) {
                         state = DECODE_STATE_END;
-                        maps = Collections.emptyMap();
+                        value = Collections.emptyMap();
                         return true;
                     } else if (count > 0) {
-                        maps = new HashMap<>(count);
+                        value = new HashMap<>(count);
                         state = DECODE_STATE_KEY;
                     } else {
                         return false;
@@ -47,12 +46,12 @@ public class MapsResponse extends RedisResponse {
                     }
                     break;
                 case DECODE_STATE_VALUE:
-                    if (value == null) {
-                        value = RedisResponse.newInstance(readBuffer.get());
-                    } else if (value.decode(readBuffer)) {
-                        maps.put(key, value);
+                    if (val == null) {
+                        val = RedisResponse.newInstance(readBuffer.get());
+                    } else if (val.decode(readBuffer)) {
+                        value.put(key, val);
                         key = null;
-                        value = null;
+                        val = null;
                         count--;
                         if (count == 0) {
                             state = DECODE_STATE_END;
@@ -67,12 +66,5 @@ public class MapsResponse extends RedisResponse {
             }
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return "MapsResponse{" +
-                "maps=" + maps +
-                '}';
     }
 }
