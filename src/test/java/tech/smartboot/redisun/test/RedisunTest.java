@@ -375,11 +375,11 @@ public class RedisunTest {
         // 注意：WITHSCORES 选项在同步方法中无法直接测试，因为它会改变返回值类型
         // 我们会在异步方法中测试这个功能
 
-        // 测试 LIMIT 选项
-        result1 = redisun.zrange(key, 0, -1, cmd -> cmd.limit(1, 2));
+        // 测试 LIMIT 选项（需要与BYSCORE或BYLEX组合使用）
+        result1 = redisun.zrange(key, 1, 3, cmd -> cmd.sortByScore().limit(1, 2));
         Assert.assertEquals(2, result1.size());
-        Assert.assertEquals("two", result1.get(0));
-        Assert.assertEquals("three", result1.get(1));
+        Assert.assertEquals("two", result1.get(0).getMember());
+        Assert.assertEquals("three", result1.get(1).getMember());
 
         // 清理测试数据
         redisun.del(key);
