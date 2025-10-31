@@ -35,7 +35,7 @@ Redisun is a lightweight Redis client based on [smart-socket](https://github.com
 <dependency>
     <groupId>tech.smartboot</groupId>
     <artifactId>redisun</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 

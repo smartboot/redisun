@@ -35,7 +35,7 @@ Redisun 是一个基于 [smart-socket](https://gitee.com/smartboot/smart-socket)
 <dependency>
     <groupId>tech.smartboot</groupId>
     <artifactId>redisun</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
