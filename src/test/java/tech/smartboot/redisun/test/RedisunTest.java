@@ -438,13 +438,13 @@ public class RedisunTest {
 
         // 测试 WITHSCORES 选项（异步方法）
         List<ZRangeCommand.Tuple> result = redisun.asyncZrange(key, 0, -1, cmd -> cmd.withScores()).get();
-        Assert.assertEquals(6, result.size()); // 3个成员，每个成员后面跟一个分数
+        Assert.assertEquals(3, result.size()); // 3个成员，每个成员后面跟一个分数
         Assert.assertEquals("one", result.get(0).getMember());
-        Assert.assertEquals("1", result.get(1).getMember());
-        Assert.assertEquals("two", result.get(2).getMember());
-        Assert.assertEquals("2", result.get(3).getMember());
-        Assert.assertEquals("three", result.get(4).getMember());
-        Assert.assertEquals("3", result.get(5).getMember());
+        Assert.assertEquals(1, result.get(0).getScore(), 0);
+        Assert.assertEquals("two", result.get(1).getMember());
+        Assert.assertEquals(2, result.get(1).getScore(), 0);
+        Assert.assertEquals("three", result.get(2).getMember());
+        Assert.assertEquals(3, result.get(2).getScore(), 0);
 
         // 清理测试数据
         redisun.del(key);
