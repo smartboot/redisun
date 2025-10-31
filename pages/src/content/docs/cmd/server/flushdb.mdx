@@ -1,0 +1,46 @@
+---
+title: FLUSHDB
+description: Redis FLUSHDB 命令用于清空当前数据库中的所有键。
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+FLUSHDB 命令用于清空当前选定的 Redis 数据库中的所有键。
+
+### Redis 原生命令语法
+
+<Code code={`FLUSHDB`} lang="bash" />
+
+**参数说明**
+
+FLUSHDB 命令不需要参数。
+
+### 详细说明
+
+FLUSHDB 命令会删除当前选定数据库中的所有键，但不会影响其他数据库。这是一个非常强大的命令，应该谨慎使用。
+
+## Redisun 使用方式
+
+在 redisun 中，FLUSHDB 命令通过 FlushDbCommand 类和 Redisun 类中的 flushDb 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 清空当前数据库
+boolean result = redisun.flushDb();
+System.out.println("FlushDB result: " + result);`} lang="java" />
+
+## 注意事项
+
+1. FLUSHDB 只影响当前选定的数据库
+2. 这是一个危险的操作，会删除数据库中的所有数据
+3. 命令执行成功时返回 true
+
+## 参考资料
+
+- [Redis FLUSHDB 命令官方文档](https://redis.io/commands/flushdb/)

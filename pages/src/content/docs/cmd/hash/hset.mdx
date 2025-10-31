@@ -1,0 +1,65 @@
+---
+title: HSET
+description: Redis HSET 命令用于设置哈希表中指定字段的值。
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+将哈希表 key 中的字段 field 的值设为 value 。
+
+如果哈希表不存在，一个新的哈希表被创建并进行 HSET 操作。
+
+如果字段 field 已经存在于哈希表中，旧值将被覆盖。
+
+### Redis 原生命令语法
+
+<Code code={`HSET key field value`} lang="bash" />
+
+**参数说明**
+
+- **key**: 哈希表的键
+- **field**: 哈希表中的字段
+- **value**: 要设置的值
+
+### 详细说明
+
+HSET 命令用于设置哈希表中指定字段的值。Redis 哈希表是一个键值对集合，适合存储对象。
+
+## Redisun 使用方式
+
+在 redisun 中，HSET 命令通过 HSetCommand 类和 Redisun 类中的 hset 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 设置哈希表字段
+int result = redisun.hset("user:1000", "name", "Alice");
+System.out.println("Set result: " + result); // 输出: 1 (新建字段)
+
+// 更新已存在的字段
+result = redisun.hset("user:1000", "name", "Bob");
+System.out.println("Update result: " + result); // 输出: 0 (更新字段)
+
+// 设置多个字段
+redisun.hset("user:1000", "email", "bob@example.com");
+redisun.hset("user:1000", "age", "25");
+
+// 异步版本
+CompletableFuture<Integer> future = redisun.asyncHset("user:1001", "name", "Charlie");
+future.thenAccept(res -> System.out.println("Async set result: " + res));`} lang="java" />
+
+## 注意事项
+
+1. 如果字段是哈希表中的一个新建字段，并且值设置成功，返回 1
+2. 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回 0
+3. 如果 key 不存在，会自动创建一个新的哈希表
+4. 哈希表适合存储对象，如用户信息、商品信息等
+
+## 参考资料
+
+- [Redis HSET 命令官方文档](https://redis.io/commands/hset/)

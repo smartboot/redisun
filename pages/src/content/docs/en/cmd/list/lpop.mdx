@@ -1,0 +1,61 @@
+---
+title: LPOP
+description: The Redis LPOP command is used to remove and return the first element of a list.
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Remove and return the first element (left side) of the list. If the list is empty or the key does not exist, return nil.
+
+### Redis Native Command Syntax
+
+<Code code={`LPOP key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the list
+
+### Detailed Explanation
+
+The LPOP command is one of the list operation commands. It removes and returns the first element of the list. If the list is empty or the key does not exist, it returns nil.
+
+## Redisun Usage
+
+In redisun, the LPOP command is implemented through the LPopCommand class and the lpop method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Remove and get element from the head of the list
+String result = redisun.lpop("mylist");
+if (result != null) {
+    System.out.println("Popped element: " + result);
+} else {
+    System.out.println("List is empty or key does not exist");
+}
+
+// Asynchronous version
+CompletableFuture<String> future = redisun.asyncLpop("mylist");
+future.thenAccept(element -> {
+    if (element != null) {
+        System.out.println("Async popped element: " + element);
+    } else {
+        System.out.println("List is empty or key does not exist");
+    }
+});`} lang="java" />
+
+## Notes
+
+1. If the list is empty or the key does not exist, return null
+2. If the key exists but is not of list type, an exception will be thrown
+3. The operation is atomic
+4. In the blocking version of the BLPOP command, it will block and wait when the list is empty, but LPOP will not block
+
+## References
+
+- [Redis LPOP Command Official Documentation](https://redis.io/commands/lpop/)

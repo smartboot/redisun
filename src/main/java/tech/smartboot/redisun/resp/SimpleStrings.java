@@ -29,6 +29,27 @@ import java.nio.ByteBuffer;
  */
 public class SimpleStrings extends RESP<String> {
     public static final String OK = "OK";
+    public static final SimpleStrings OK_RESP = new SimpleStrings() {
+        {
+            value = OK;
+        }
+
+        @Override
+        public boolean decode(ByteBuffer readBuffer) {
+            return true;
+        }
+    };
+
+    public static SimpleStrings of(ByteBuffer buffer) {
+        if (buffer.remaining() < 4) {
+            return new SimpleStrings();
+        }
+        if (buffer.getInt() == 1330318602) {
+            return SimpleStrings.OK_RESP;
+        }
+        buffer.position(buffer.position() - 4);
+        return new SimpleStrings();
+    }
 
     /**
      * 受保护的构造函数，允许子类访问

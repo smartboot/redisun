@@ -1,0 +1,130 @@
+---
+title: SET
+description: The Redis SET command is used to set the value of a specified key, supporting multiple options such as NX, XX, EX, PX, etc.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+
+
+The SET command is used to set the value of a specified key. If the key already exists, regardless of its type, it will be overwritten. After successfully executing a SET operation, any associated time-to-live (TTL) with the key will be discarded.
+
+The time complexity of the SET command is O(1), making it a very fast operation.
+
+### Redis Native Command Syntax
+
+<Code code={`SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds | KEEPTTL]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to set
+- **value**: The value to set
+- **NX**: Set the key only if it does not exist
+- **XX**: Set the key only if it already exists
+- **GET**: Return the old value stored at the key, or nil if the key does not exist
+- **EX seconds**: Set the key's expiration time (in seconds)
+- **PX milliseconds**: Set the key's expiration time (in milliseconds)
+- **EXAT timestamp-seconds**: Set the key to expire at a specific UNIX timestamp (in seconds)
+- **PXAT timestamp-milliseconds**: Set the key to expire at a specific UNIX timestamp (in milliseconds)
+- **KEEPTTL**: Retain the time-to-live associated with the key
+
+### Detailed Explanation
+
+#### Basic Usage
+
+The SET command is one of the most fundamental Redis string operation commands. It sets the key to the specified string value. If the key already exists, the SET command will overwrite the old value, regardless of the old value's type.
+
+<Code code={`SET mykey "Hello"
+GET mykey`} lang="bash" />
+
+##### Expiration Time Options
+
+The SET command supports multiple options for setting expiration time:
+
+- EX seconds: Set the key to expire after the specified number of seconds
+- PX milliseconds: Set the key to expire after the specified number of milliseconds
+- EXAT timestamp-seconds: Set the key to expire at a specific UNIX timestamp (in seconds)
+- PXAT timestamp-milliseconds: Set the key to expire at a specific UNIX timestamp (in milliseconds)
+- KEEPTTL: Retain the key's existing expiration time
+
+<Code code={`SET anotherkey "will expire in a minute" EX 60
+SET yetanotherkey "will expire at a specific time" PXAT 1689876543000`} lang="bash" />
+
+##### Conditional Setting Options
+
+The SET command supports conditional setting options:
+
+- NX: Set only if the key does not exist (equivalent to the SETNX command)
+- XX: Set only if the key already exists
+
+<Code code={`SET key1 "value1" NX  // Set only if key1 does not exist
+SET key2 "value2" XX  // Set only if key2 exists`} lang="bash" />
+
+##### Get Old Value Option
+
+The GET option allows returning the old value while setting a new value:
+
+<Code code={`SET key1 "old_value"
+SET key1 "new_value" GET  // Returns "old_value"`} lang="bash" />
+
+## Redisun Usage
+
+In redisun, the SET command is implemented through the [SetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) class and the `set` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Basic setting
+boolean result = redisun.set("mykey", "myvalue");
+
+// Setting with options
+boolean result = redisun.set("mykey", "myvalue", command -> {
+    command.expire(60); // Expires in 60 seconds
+});`} lang="java" />
+
+### Asynchronous Usage
+
+<Code code={`// Asynchronous setting
+CompletableFuture<Boolean> future = redisun.asyncSet("mykey", "myvalue");
+
+// Asynchronous setting with options
+CompletableFuture<Boolean> future = redisun.asyncSet("mykey", "myvalue", command -> {
+    command.expire(60); // Expires in 60 seconds
+});`} lang="java" />
+
+### Using SetCommand Options
+
+<Code code={`// Using various SetCommand options
+redisun.set("mykey", "myvalue", command -> {
+    command.setIfNotExists();  // NX option
+    command.expire(60);        // EX option
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.setIfExists();     // XX option
+    command.expireMs(60000);   // PX option
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.keepTTL();         // KEEPTTL option
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.expireAt(new Date(System.currentTimeMillis() + 60000)); // PXAT option
+});`} lang="java" />
+
+## Notes
+
+1. The options supported by the SET command can replace commands such as SETNX, SETEX, PSETEX, GETSET, which may be deprecated in future versions.
+2. Redis uses double-precision floating-point numbers to represent scores, and integers within the range of -(2^53) to +(2^53) can be precisely represented.
+3. When using the GET option, if the key exists but is not of string type, an error will be returned.
+
+## References
+
+- [Redis SET Command Official Documentation](https://redis.io/docs/latest/commands/set/)

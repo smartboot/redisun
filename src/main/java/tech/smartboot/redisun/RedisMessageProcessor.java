@@ -5,6 +5,7 @@ import org.smartboot.socket.StateMachineEnum;
 import org.smartboot.socket.extension.processor.AbstractMessageProcessor;
 import org.smartboot.socket.transport.AioSession;
 import tech.smartboot.redisun.resp.RESP;
+import tech.smartboot.redisun.resp.SimpleErrors;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
@@ -51,12 +52,11 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
 
         // 获取当前会话关联的Redis会话对象
         RedisSession redisSession = session.getAttachment();
-
         // 获取正在进行解码的响应对象，如果为空则创建一个新的
         RESP redisResponse = redisSession.getDecodingResponse();
         if (redisResponse == null) {
             // 根据第一个字节确定RESP数据类型并创建对应实例
-            redisResponse = RESP.newInstance(readBuffer.get());
+            redisResponse = RESP.newInstance(readBuffer);
             redisSession.setDecodingResponse(redisResponse);
         }
 
@@ -85,8 +85,17 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
     public void process0(AioSession session, RESP msg) {
         // 获取当前会话关联的Redis会话对象
         RedisSession redisSession = session.getAttachment();
-        CompletableFuture<RESP> future = redisSession.getFuture();
-        future.complete(msg);
+        CompletableFuture<RESP> future = redisSession.poll();
+        if (future == null) {
+            // 如果没有等待的CompletableFuture，则将消息记录为错误并返回
+            System.err.println("No waiting future for response: " + msg);
+            return;
+        }
+        if (msg instanceof SimpleErrors) {
+            future.completeExceptionally(new RedisunException(msg.getValue().toString()));
+        } else {
+            future.complete(msg);
+        }
     }
 
     /**
@@ -103,16 +112,33 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
     public void stateEvent0(AioSession session, StateMachineEnum stateMachineEnum, Throwable throwable) {
         switch (stateMachineEnum) {
             // 处理新建会话事件
-            case NEW_SESSION:
+            case NEW_SESSION: {
                 // 为新会话创建并绑定Redis会话对象
                 RedisSession redisSession = new RedisSession();
                 session.setAttachment(redisSession);
+            }
+            break;
+            case DECODE_EXCEPTION: {
+                RedisSession redisSession = session.getAttachment();
+                CompletableFuture<RESP> future = redisSession.poll();
+                if (future != null) {
+                    future.completeExceptionally(throwable);
+                }
                 break;
+            }
+            case SESSION_CLOSED: {
+                RedisSession redisSession = session.getAttachment();
+                CompletableFuture<RESP> future;
+                while ((future = redisSession.poll()) != null) {
+                    future.completeExceptionally(new RedisunException("session closed"));
+                }
+            }
+            break;
         }
 
         // 如果有异常发生，打印异常堆栈信息
         if (throwable != null) {
-            throwable.printStackTrace();
+//            throwable.printStackTrace();
         }
     }
 }

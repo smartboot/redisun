@@ -1,0 +1,60 @@
+---
+title: SELECT
+description: The Redis SELECT command is used to switch to the specified database. Redis provides 16 databases by default.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The SELECT command is used to select a Redis logical database with a specified zero-based numeric index. New connections always use database 0.
+
+The time complexity of the SELECT command is O(1), making it a very fast operation.
+
+### Redis Native Command Syntax
+
+<Code code={`SELECT index`} lang="bash" />
+
+**Parameter Description**
+
+- **index**: Database index (starting from 0)
+
+### Detailed Explanation
+
+Redis databases are a namespace form: all databases are still persisted in the same RDB/AOF file. However, different databases can have keys with the same name, and commands like FLUSHDB, SWAPDB, or RANDOMKEY work on specific databases.
+
+In practical applications, Redis databases should be used to separate different keys belonging to the same application (if needed), rather than for running multiple unrelated applications in a single Redis instance.
+
+When using Redis Cluster, the SELECT command cannot be used because Redis Cluster only supports database zero. In the case of Redis Cluster, having multiple databases would be useless and an unnecessary source of complexity. Under Redis Cluster design and goals, commands that perform atomic operations on a single database cannot be implemented.
+
+Since the currently selected database is a property of the connection, clients should track the currently selected database and reselect it when reconnecting. Although there is no command to query the selected database in the current connection, the CLIENT LIST output will show the currently selected database for each client.
+
+## Redisun Usage
+
+In redisun, the SELECT command is implemented through the [SelectCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SelectCommand.java) class, but it usually does not need to be called directly, as the client automatically executes the SELECT command according to the configuration when the connection is established.
+
+### Configuring Database
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+    options.setDatabase(1); // Automatically executes SELECT 1
+});`} lang="java" />
+
+### Manually Executing SELECT Command
+
+If you need to switch databases at runtime, you can do so by directly executing the command:
+
+<Code code={`// Note: This approach requires direct use of the command class and is not recommended
+// A better approach is to specify the database when creating the client`} lang="java" />
+
+## Notes
+
+1. Redis provides 16 databases by default (numbered 0-15)
+2. Different databases are completely independent namespaces
+3. In Redis Cluster mode, only database 0 can be used
+4. Clients should reselect the database when reconnecting
+
+## References
+
+- [Redis SELECT Command Official Documentation](https://redis.io/commands/select/)

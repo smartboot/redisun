@@ -1,0 +1,130 @@
+---
+title: SET
+description: Redis SET 命令用于设置指定键的值，支持多种选项如 NX、XX、EX、PX 等。
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+
+
+SET 命令用于设置指定键的值。如果键已存在，不管其类型如何，都会被覆盖。成功执行 SET 操作后，与该键关联的任何生存时间都将被丢弃。
+
+SET 命令的时间复杂度为 O(1)，是一个非常快速的操作。
+
+### Redis 原生命令语法
+
+<Code code={`SET key value [NX | XX] [GET] [EX seconds | PX milliseconds | EXAT unix-time-seconds | PXAT unix-time-milliseconds | KEEPTTL]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要设置的键
+- **value**: 要设置的值
+- **NX**: 仅在键不存在时设置键
+- **XX**: 仅在键已存在时设置键
+- **GET**: 返回存储在键中的旧值，如果键不存在则返回 nil
+- **EX seconds**: 设置键的过期时间（秒）
+- **PX milliseconds**: 设置键的过期时间（毫秒）
+- **EXAT timestamp-seconds**: 设置键在指定的 UNIX 时间戳（秒）过期
+- **PXAT timestamp-milliseconds**: 设置键在指定的 UNIX 时间戳（毫秒）过期
+- **KEEPTTL**: 保留与键关联的生存时间
+
+### 详细说明
+
+#### 基本用法
+
+SET 命令是最基本的 Redis 字符串操作命令之一。它将键 key 设置为指定的字符串值。如果键已经存在，SET 命令会覆盖旧值，无论旧值是什么类型。
+
+<Code code={`SET mykey "Hello"
+GET mykey`} lang="bash" />
+
+##### 过期时间选项
+
+SET 命令支持多种设置过期时间的选项：
+
+- EX seconds：设置键在指定的秒数后过期
+- PX milliseconds：设置键在指定的毫秒数后过期
+- EXAT timestamp-seconds：设置键在指定的 UNIX 时间戳（秒）过期
+- PXAT timestamp-milliseconds：设置键在指定的 UNIX 时间戳（毫秒）过期
+- KEEPTTL：保留键现有的过期时间
+
+<Code code={`SET anotherkey "will expire in a minute" EX 60
+SET yetanotherkey "will expire at a specific time" PXAT 1689876543000`} lang="bash" />
+
+##### 条件设置选项
+
+SET 命令支持条件设置选项：
+
+- NX：仅当键不存在时才设置（相当于 SETNX 命令）
+- XX：仅当键已存在时才设置
+
+<Code code={`SET key1 "value1" NX  // 仅当 key1 不存在时设置
+SET key2 "value2" XX  // 仅当 key2 存在时设置`} lang="bash" />
+
+##### 获取旧值选项
+
+GET 选项允许在设置新值的同时返回旧值：
+
+<Code code={`SET key1 "old_value"
+SET key1 "new_value" GET  // 返回 "old_value"`} lang="bash" />
+
+## Redisun 使用方式
+
+在 redisun 中，SET 命令通过 [SetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) 类和 Redisun 类中的 `set` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 基本设置
+boolean result = redisun.set("mykey", "myvalue");
+
+// 设置带选项
+boolean result = redisun.set("mykey", "myvalue", command -> {
+    command.expire(60); // 60秒过期
+});`} lang="java" />
+
+### 异步用法
+
+<Code code={`// 异步设置
+CompletableFuture<Boolean> future = redisun.asyncSet("mykey", "myvalue");
+
+// 异步设置带选项
+CompletableFuture<Boolean> future = redisun.asyncSet("mykey", "myvalue", command -> {
+    command.expire(60); // 60秒过期
+});`} lang="java" />
+
+### 使用 SetCommand 选项
+
+<Code code={`// 使用 SetCommand 的各种选项
+redisun.set("mykey", "myvalue", command -> {
+    command.setIfNotExists();  // NX 选项
+    command.expire(60);        // EX 选项
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.setIfExists();     // XX 选项
+    command.expireMs(60000);   // PX 选项
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.keepTTL();         // KEEPTTL 选项
+});
+
+redisun.set("mykey", "myvalue", command -> {
+    command.expireAt(new Date(System.currentTimeMillis() + 60000)); // PXAT 选项
+});`} lang="java" />
+
+## 注意事项
+
+1. SET 命令支持的选项可以替代 SETNX、SETEX、PSETEX、GETSET 等命令，这些命令在未来版本中可能会被弃用。
+2. Redis 使用双精度浮点数表示分数，在 -(2^53) 到 +(2^53) 范围内的整数可以被精确表示。
+3. 使用 GET 选项时，如果键存在但不是字符串类型，会返回错误。
+
+## 参考资料
+
+- [Redis SET 命令官方文档](https://redis.io/docs/latest/commands/set/)

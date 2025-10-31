@@ -1,0 +1,61 @@
+---
+title: LPOP
+description: Redis LPOP 命令用于移除并返回列表的第一个元素。
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+移除并返回列表的头部(左边)第一个元素。如果列表为空或 key 不存在，则返回 nil。
+
+### Redis 原生命令语法
+
+<Code code={`LPOP key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 列表的键
+
+### 详细说明
+
+LPOP 命令是列表操作命令之一，它移除并返回列表的第一个元素。如果列表为空或者 key 不存在，则返回 nil。
+
+## Redisun 使用方式
+
+在 redisun 中，LPOP 命令通过 LPopCommand 类和 Redisun 类中的 lpop 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 从列表头部移除并获取元素
+String result = redisun.lpop("mylist");
+if (result != null) {
+    System.out.println("Popped element: " + result);
+} else {
+    System.out.println("List is empty or key does not exist");
+}
+
+// 异步版本
+CompletableFuture<String> future = redisun.asyncLpop("mylist");
+future.thenAccept(element -> {
+    if (element != null) {
+        System.out.println("Async popped element: " + element);
+    } else {
+        System.out.println("List is empty or key does not exist");
+    }
+});`} lang="java" />
+
+## 注意事项
+
+1. 如果列表为空或 key 不存在，返回 null
+2. 如果 key 存在但不是列表类型，会抛出异常
+3. 操作是原子性的
+4. 在阻塞版本的 BLPOP 命令中，当列表为空时会阻塞等待，但 LPOP 不会阻塞
+
+## 参考资料
+
+- [Redis LPOP 命令官方文档](https://redis.io/commands/lpop/)

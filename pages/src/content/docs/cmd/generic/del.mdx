@@ -1,0 +1,56 @@
+---
+title: DEL
+description: Redis DEL 命令用于删除指定的一个或多个键，不存在的键会被忽略。
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+DEL 命令用于删除指定的一个或多个键。不存在的键会被忽略。DEL 命令的时间复杂度为 O(N)，其中 N 是将被删除的键的数量。当要删除的键持有字符串以外的值时，该键的个体复杂度为 O(M)，其中 M 是列表、集合、有序集合或哈希中的元素数量。删除持有字符串值的单个键的时间复杂度为 O(1)。
+
+### Redis 原生命令语法
+
+<Code code={`DEL key [key ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要删除的键，可以指定多个
+
+### 详细说明
+
+DEL 命令用于从 Redis 数据库中删除指定的键及其关联的值。如果指定的键不存在，DEL 命令会忽略这些键，不会产生错误。
+
+DEL 命令对于不同数据类型的键都适用，包括字符串、列表、集合、有序集合和哈希等。
+
+## Redisun 使用方式
+
+在 redisun 中，DEL 命令通过 [DelCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DelCommand.java) 类和 Redisun 类中的 `del` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 删除单个键
+int deletedCount = redisun.del("mykey");
+
+// 删除多个键（数组形式）
+int deletedCount = redisun.del("key1", "key2", "key3");
+
+// 删除多个键（列表形式）
+List<String> keys = Arrays.asList("key1", "key2", "key3");
+int deletedCount = redisun.del(keys);`} lang="java" />
+
+## 注意事项
+
+1. DEL 命令会立即删除指定的键，释放相关内存
+2. 不存在的键会被忽略，不会计入删除计数
+3. DEL 命令适用于所有数据类型的键
+4. 对于大型数据结构，DEL 命令可能会阻塞服务器一段时间
+
+## 参考资料
+
+- [Redis DEL 命令官方文档](https://redis.io/docs/latest/commands/del/)

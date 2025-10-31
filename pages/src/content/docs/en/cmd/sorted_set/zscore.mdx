@@ -1,0 +1,86 @@
+---
+title: ZSCORE
+description: The Redis ZSCORE command is used to return the score of a specified member in a sorted set.
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The ZSCORE command returns the score of a specified member in a sorted set. If the member does not exist, nil is returned.
+
+The time complexity of the ZSCORE command is O(1).
+
+### Redis Native Command Syntax
+
+<Code code={`ZSCORE key member`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the sorted set
+- **member**: The name of the member
+
+### Detailed Explanation
+
+The ZSCORE command is used to get the score of a specified member in a sorted set. If the member does not exist in the sorted set, nil is returned. If the key does not exist, nil is also returned.
+
+#### Return Value
+
+- If the member exists, return its score (in string form)
+- If the member does not exist or the key does not exist, return nil
+
+#### Example
+
+<Code code={`redis> ZADD myzset 1 "one"
+(integer) 1
+redis> ZSCORE myzset "one"
+"1"
+redis> ZSCORE myzset "two"
+(nil)`} lang="bash" />
+
+## Redisun Usage
+
+In redisun, the ZSCORE command is implemented through the [ZScoreCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZScoreCommand.java) class and the `zscore` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Add some test data
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.5, "two");
+
+// Get the score of a member
+Double score = redisun.zscore("myzset", "one");
+System.out.println("Score of 'one': " + score); // Output: Score of 'one': 1.0
+
+// Get the score of a non-existent member
+Double nonExistentScore = redisun.zscore("myzset", "three");
+System.out.println("Score of 'three': " + nonExistentScore); // Output: Score of 'three': null`} lang="java" />
+
+### Asynchronous Usage
+
+<Code code={`// Asynchronously get the score of a member
+CompletableFuture<Double> future = redisun.asyncZscore("myzset", "one");
+
+// Handle asynchronous result
+future.thenAccept(score -> {
+    if (score != null) {
+        System.out.println("Score: " + score);
+    } else {
+        System.out.println("Member not found");
+    }
+});`} lang="java" />
+
+## Notes
+
+1. If the member does not exist, the method returns null
+2. If the key does not exist, the method also returns null
+3. The score is returned as a Double type
+
+## References
+
+- [Redis ZSCORE Command Official Documentation](https://redis.io/docs/latest/commands/zscore/)

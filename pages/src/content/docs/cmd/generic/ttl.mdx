@@ -1,0 +1,52 @@
+---
+title: TTL
+description: 获取键的剩余过期时间
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+获取键的剩余过期时间（以秒为单位）。
+
+### Redis原生命令语法
+
+<Code code={`TTL key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要查询过期时间的键
+
+### 详细说明
+
+TTL 命令以秒为单位返回给定键的剩余生存时间。
+
+#### 返回值
+
+- 当键不存在时，返回 -2
+- 当键存在但没有设置过期时间时，返回 -1
+- 否则返回键的剩余过期时间（以秒为单位）
+
+#### 时间复杂度
+
+O(1)
+
+## Redisun使用方式
+
+```java
+// 同步方式
+long ttl = redisun.ttl("mykey");
+
+// 异步方式
+CompletableFuture<Long> future = redisun.asyncTtl("mykey");
+```
+
+**注意事项**
+
+- TTL 命令只能用于查询键的过期时间，不能修改过期时间
+- 对于没有设置过期时间的键，TTL 命令返回 -1
+- 对于不存在的键，TTL 命令返回 -2
+
+**参考资料**
+
+- [Redis TTL Command](https://redis.io/commands/ttl/)

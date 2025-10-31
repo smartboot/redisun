@@ -1,0 +1,68 @@
+---
+title: HGET
+description: Redis HGET 命令用于获取哈希表中指定字段的值。
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+返回哈希表中指定字段的值。
+
+如果字段不存在，返回 nil。
+
+如果 key 不存在，返回 nil。
+
+### Redis 原生命令语法
+
+<Code code={`HGET key field`} lang="bash" />
+
+**参数说明**
+
+- **key**: 哈希表的键
+- **field**: 要获取值的字段
+
+### 详细说明
+
+HGET 命令用于获取存储在哈希表中指定字段的值。它是与 HSET 命令配合使用的基本读取操作。
+
+## Redisun 使用方式
+
+在 redisun 中，HGET 命令通过 HGetCommand 类和 Redisun 类中的 hget 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 设置哈希表字段
+redisun.hset("user:1000", "name", "Alice");
+redisun.hset("user:1000", "email", "alice@example.com");
+
+// 获取哈希表字段值
+String name = redisun.hget("user:1000", "name");
+System.out.println("User name: " + name); // 输出: Alice
+
+// 获取不存在的字段
+String age = redisun.hget("user:1000", "age");
+System.out.println("User age: " + age); // 输出: null
+
+// 获取不存在的key的字段
+String value = redisun.hget("nonexistent", "field");
+System.out.println("Value: " + value); // 输出: null
+
+// 异步版本
+CompletableFuture<String> future = redisun.asyncHget("user:1000", "email");
+future.thenAccept(email -> System.out.println("User email: " + email));`} lang="java" />
+
+## 注意事项
+
+1. 如果给定字段存在于哈希表中，返回该字段的值
+2. 如果给定字段不存在或是给定的key不存在，返回 null
+3. HGET 命令的时间复杂度为 O(1)
+4. 哈希表适合存储对象，HGET 是访问对象属性的基本方式
+
+## 参考资料
+
+- [Redis HGET 命令官方文档](https://redis.io/commands/hget/)

@@ -87,26 +87,27 @@ public final class Maps extends RESP<Map<RESP, RESP>> {
                         // 初始化Map容器
                         value = new HashMap<>(count);
                         state = DECODE_STATE_KEY;
+                        break;
                     } else {
-                        // 负数键值对个数是非法的
                         return false;
                     }
-                    break;
                 case DECODE_STATE_KEY:
                     // 解析键
                     if (key == null) {
                         // 创建新的键对象
-                        key = RESP.newInstance(readBuffer.get());
+                        key = RESP.newInstance(readBuffer);
                     } else if (key.decode(readBuffer)) {
                         // 键解析完成，进入值解析状态
                         state = DECODE_STATE_VALUE;
+                    } else {
+                        return false;
                     }
                     break;
                 case DECODE_STATE_VALUE:
                     // 解析值
                     if (val == null) {
                         // 创建新的值对象
-                        val = RESP.newInstance(readBuffer.get());
+                        val = RESP.newInstance(readBuffer);
                     } else if (val.decode(readBuffer)) {
                         // 值解析完成，将键值对添加到Map中
                         value.put(key, val);
@@ -121,6 +122,8 @@ public final class Maps extends RESP<Map<RESP, RESP>> {
                             // 继续解析下一个键
                             state = DECODE_STATE_KEY;
                         }
+                    } else {
+                        return false;
                     }
                     break;
                 default:
@@ -142,8 +145,6 @@ public final class Maps extends RESP<Map<RESP, RESP>> {
         writeBuffer.write(RESP_DATA_TYPE_MAP);
         // 写入键值对个数
         writeInt(writeBuffer, value.size());
-        // 写入行终止符
-        writeBuffer.write(CRLF);
         // 逐个写入键值对
         for (Map.Entry<RESP, RESP> entry : value.entrySet()) {
             entry.getKey().writeTo(writeBuffer);

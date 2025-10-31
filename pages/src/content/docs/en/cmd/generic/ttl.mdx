@@ -1,0 +1,52 @@
+---
+title: TTL
+description: Get the remaining time to live of a key
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Get the remaining time to live of a key in seconds.
+
+### Redis Native Command Syntax
+
+<Code code={`TTL key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to query expiration time
+
+### Detailed Explanation
+
+The TTL command returns the remaining time to live of the given key in seconds.
+
+#### Return Value
+
+- Returns -2 when the key does not exist
+- Returns -1 when the key exists but has no expiration time set
+- Otherwise returns the remaining expiration time of the key in seconds
+
+#### Time Complexity
+
+O(1)
+
+## Redisun Usage
+
+```java
+// Synchronous mode
+long ttl = redisun.ttl("mykey");
+
+// Asynchronous mode
+CompletableFuture<Long> future = redisun.asyncTtl("mykey");
+```
+
+**Notes**
+
+- The TTL command can only be used to query the expiration time of a key, not modify it
+- For keys without expiration time set, the TTL command returns -1
+- For non-existent keys, the TTL command returns -2
+
+**References**
+
+- [Redis TTL Command](https://redis.io/commands/ttl/)

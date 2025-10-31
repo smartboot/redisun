@@ -1,0 +1,67 @@
+---
+title: INCRBY
+description: Redis INCRBY 命令用于将键中存储的数字值加上指定的增量。
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+将 key 所储存的值加上给定的增量值（increment）。
+
+如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 INCRBY 操作。
+
+如果值包含错误的类型，或字符串类型的值不能表示为数字，那么返回一个错误。
+
+本操作的值限制在 64 位(bit)有符号数字表示之内。
+
+### Redis 原生命令语法
+
+<Code code={`INCRBY key increment`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要增加的键
+- **increment**: 增量值（可以为负数，负数时表示减少）
+
+### 详细说明
+
+INCRBY 命令是原子操作，可以用于实现计数器功能。它是一个针对字符串类型的操作，但要求字符串必须能够被解析为整数。
+
+与 INCR 命令相比，INCRBY 允许指定具体的增量值，而不仅仅局限于 1。
+
+## Redisun 使用方式
+
+在 redisun 中，INCRBY 命令通过 IncrByCommand 类和 Redisun 类中的 incrBy 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 增加键的值（增加10）
+long result = redisun.incrBy("mycounter", 10);
+System.out.println("Counter value: " + result);
+
+// 异步版本
+CompletableFuture<Long> future = redisun.asyncIncrBy("mycounter", 10);
+future.thenAccept(value -> System.out.println("Async counter value: " + value));`} lang="java" />
+
+### 使用负数实现减少操作
+
+<Code code={`// 减少键的值（减少5）
+long result = redisun.incrBy("mycounter", -5);
+System.out.println("Counter value: " + result);`} lang="java" />
+
+## 注意事项
+
+1. 如果 key 不存在，会自动创建并初始化为 0
+2. 如果 key 存在但不是数字字符串，会抛出异常
+3. 值的范围限制在 64 位有符号整数范围内
+4. 操作是原子性的，适用于并发场景
+5. increment 参数可以为负数，此时实现的是减少操作
+
+## 参考资料
+
+- [Redis INCRBY 命令官方文档](https://redis.io/commands/incrby/)

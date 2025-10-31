@@ -1,0 +1,101 @@
+---
+title: ZADD
+description: The Redis ZADD command is used to add one or more members and their scores to a sorted set.
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The ZADD command is used to add all specified members and their scores to the sorted set stored at key. Multiple score/member pairs can be specified. If the specified members are already members of the sorted set, their scores will be updated and the elements will be reinserted to ensure proper sorting.
+
+If the key does not exist, a new sorted set is created with the specified members as the only members. If the key exists but does not hold a sorted set, an error is returned.
+
+The time complexity of the ZADD command is O(log(N)), where N is the number of elements in the sorted set.
+
+### Redis Native Command Syntax
+
+<Code code={`ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the sorted set
+- **NX**: Add new elements only, do not update existing elements
+- **XX**: Update existing elements only, do not add new elements
+- **LT**: Update existing elements only when the new score is less than the current score
+- **GT**: Update existing elements only when the new score is greater than the current score
+- **CH**: Modify the return value to the number of changed elements, rather than the number of new elements
+- **INCR**: When this option is specified, ZADD behaves like ZINCRBY
+- **score**: The score of the member
+- **member**: The name of the member
+
+### Detailed Explanation
+
+#### Basic Usage
+
+The ZADD command adds members to a sorted set and assigns a score to each member. Members in a sorted set are arranged in ascending order by score.
+
+<Code code={`ZADD myzset 1 "one"
+ZADD myzset 1 "uno"
+ZADD myzset 2 "two" 3 "three"`} lang="bash" />
+
+##### ZADD Options
+
+ZADD supports multiple options, which are specified after the key name and before the first score parameter:
+
+- XX: Update existing elements only, do not add new elements
+- NX: Add new elements only, do not update existing elements
+- LT: Update existing elements only when the new score is less than the current score (does not prevent adding new elements)
+- GT: Update existing elements only when the new score is greater than the current score (does not prevent adding new elements)
+- CH: Modify the return value to the total number of changed elements (including new and updated elements)
+- INCR: This option specifies that ZADD behaves like ZINCRBY, only one score-member pair can be specified
+
+Note: The GT, LT, and NX options are mutually exclusive.
+
+##### Score Precision
+
+Redis sorted sets use double-precision 64-bit floating-point numbers to represent scores. On all supported architectures, this is represented as an IEEE 754 floating-point number, capable of precisely representing integers in the range -(2^53) to +(2^53).
+
+##### Elements with the Same Score
+
+Although the same element cannot be repeated in a sorted set, multiple different elements with the same score can be added. When multiple elements have the same score, they are arranged in lexicographical order.
+
+## Redisun Usage
+
+In redisun, the ZADD command is implemented through the [ZAddCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZAddCommand.java) class and the `zadd` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Add a single member to the sorted set
+int addedCount = redisun.zadd("myzset", 1.0, "member1");
+
+// Add multiple members
+redisun.zadd("myzset", 1.0, "member1");
+redisun.zadd("myzset", 2.5, "member2");
+redisun.zadd("myzset", 3.7, "member3");`} lang="java" />
+
+### Asynchronous Usage
+
+<Code code={`// Asynchronously add members to the sorted set
+CompletableFuture<Integer> future = redisun.asyncZadd("myzset", 1.0, "member1");
+
+// Handle asynchronous result
+future.thenAccept(addedCount -> {
+    System.out.println("Added " + addedCount + " members");
+});`} lang="java" />
+
+## Notes
+
+1. Score values should be string representations of double-precision floating-point numbers
+2. +inf and -inf values are also valid score values
+3. Each element in a sorted set is unique, but they can have the same score
+4. Elements with the same score are sorted in lexicographical order
+
+## References
+
+- [Redis ZADD Command Official Documentation](https://redis.io/docs/latest/commands/zadd/)

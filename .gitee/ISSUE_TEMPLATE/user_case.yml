@@ -1,0 +1,70 @@
+name: 案例登记
+description: |
+  如果你是 redisun 的使用者，欢迎在此登记你的使用案例，包括公司名称和 logo 等信息。
+  
+  **注意：所有提交的 ISSUE 标题必须以【案例登记】开头，例如：【案例登记】某某公司使用案例。**
+title: "【案例登记】"
+labels: ["case-study"]
+body:
+  - type: input
+    id: company_name
+    attributes:
+      label: 公司名称
+      description: 请输入您的公司名称
+      placeholder: 例如：某某科技有限公司
+    validations:
+      required: true
+  - type: textarea
+    id: company_logo
+    attributes:
+      label: 公司 Logo
+      description: 请上传您的公司 Logo（可拖拽图片到文本框或粘贴图片URL）
+      placeholder: |
+        可直接粘贴图片，或输入图片URL
+    validations:
+      required: true
+  - type: dropdown
+    id: industry
+    attributes:
+      label: 所属行业
+      description: 请选择您的公司所属行业
+      options:
+        - 互联网
+        - 金融
+        - 教育
+        - 医疗
+        - 电商
+        - 游戏
+        - 政府/事业单位
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: usage_scenario
+    attributes:
+      label: 使用场景
+      description: 请描述 redisun 在贵公司的具体使用场景
+      placeholder: |
+        例如：
+        1. 用于缓存用户会话信息
+        2. 作为消息队列使用
+        3. 存储实时统计数据
+    validations:
+      required: true
+  - type: textarea
+    id: benefits
+    attributes:
+      label: 获得收益
+      description: 使用 redisun 后给业务带来的收益或改进
+      placeholder: |
+        例如：
+        1. 性能提升 XX%
+        2. 开发效率提高
+        3. 成本降低 XX%
+  - type: textarea
+    id: project_links
+    attributes:
+      label: 项目链接
+      description: 如果有公开的项目链接，请提供
+      placeholder: |
+        可提供项目官网、GitHub/Gitee地址等

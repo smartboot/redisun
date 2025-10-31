@@ -1,0 +1,878 @@
+---
+title: Command Development Guide
+description: Redisun is a lightweight, high-performance Redis client based on smart-socket, designed for the Java platform.
+sidebar:
+  order: 2
+---
+
+# Redis Command Extension Development Guide 🚀
+
+Welcome to the Redisun community! This guide will help you understand how to contribute new Redis command implementations to the Redisun client. Redisun is a lightweight, high-performance Redis client designed for the Java platform. We warmly welcome community developers to participate in contributions and improve Redisun's command support together.
+
+## Project Architecture Overview 🏗️
+
+Before starting development, let's first understand Redisun's core architecture:
+
+```
+src/main/java/tech/smartboot/redisun/
+├── Command.java              # Command abstract base class
+├── Redisun.java              # Client main class
+├── RedisunOptions.java       # Client configuration options
+├── cmd/                      # Specific command implementation directory
+│   ├── SetCommand.java       # SET command implementation
+│   ├── GetCommand.java       # GET command implementation
+│   ├── DelCommand.java       # DEL command implementation
+│   ├── IncrCommand.java      # INCR command implementation
+│   ├── DecrCommand.java      # DECR command implementation
+│   ├── StrlenCommand.java    # STRLEN command implementation
+│   ├── AppendCommand.java    # APPEND command implementation
+│   ├── HSetCommand.java      # HSET command implementation
+│   ├── HGetCommand.java      # HGET command implementation
+│   ├── SAddCommand.java      # SADD command implementation
+│   ├── ZAddCommand.java      # ZADD command implementation
+│   ├── ZRemCommand.java      # ZREM command implementation
+│   ├── ZRangeCommand.java    # ZRANGE command implementation
+│   ├── ZScoreCommand.java    # ZSCORE command implementation
+│   ├── ExistsCommand.java    # EXISTS command implementation
+│   ├── DBSizeCommand.java    # DBSIZE command implementation
+│   ├── FlushAllCommand.java  # FLUSHALL command implementation
+│   ├── FlushDbCommand.java   # FLUSHDB command implementation
+│   ├── SelectCommand.java    # SELECT command implementation
+│   └── ...                   # Other command implementations
+└── resp/                     # RESP protocol parsing module
+    ├── RESP.java             # RESP protocol base class
+    ├── BulkStrings.java      # Bulk string type
+    ├── SimpleStrings.java    # Simple string type
+    └── ...                   # Other RESP types
+```
+
+## Command Implementation Basics 🎯
+
+### Command Abstract Base Class
+
+All Redis command implementations must extend the [Command](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java) abstract base class. This class defines the common interface for command construction:
+
+```java
+public abstract class Command {
+    protected abstract List<BulkStrings> buildParams();
+}
+```
+
+Each specific command implementation class needs to implement the [buildParams()](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java#L29) method to build command parameter lists that conform to the Redis protocol specification.
+
+### Example: SET Command Implementation
+
+Let's take [SetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) as an example to understand how to implement a Redis command:
+
+```java
+public class SetCommand extends Command {
+    private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+    private final String key;
+    private final String value;
+    
+    public SetCommand(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        // Add command name
+        param.add(CONSTANTS_SET);
+        // Add key
+        param.add(RESP.ofString(key));
+        // Add value
+        param.add(RESP.ofString(value));
+        return param;
+    }
+}
+```
+
+## Steps to Develop New Commands 🛠️
+
+### 1. Create Command Class
+
+Create a new command class in the [cmd](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd) directory, for example, implementing the `INCR` command:
+
+```java
+package tech.smartboot.redisun.cmd;
+
+import tech.smartboot.redisun.Command;
+import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Redis INCRBY Command Implementation Class
+ * <p>
+ * Adds the given increment value (increment) to the value stored at key.
+ * If key does not exist, the key's value will first be initialized to 0, and then the INCRBY operation will be performed.
+ * If the value contains the wrong type, or the string type value cannot be represented as a number, an error is returned.
+ * The value of this operation is limited to 64-bit (bit) signed number representation.
+ * </p>
+ * 
+ * @see <a href="https://redis.io/commands/incrby/">Redis INCRBY Command</a>
+ */
+public class IncrByCommand extends Command {
+    private static final BulkStrings CONSTANTS_INCRBY = BulkStrings.of("INCRBY");
+    private final String key;
+    private final long increment;
+
+    public IncrByCommand(String key, long increment) {
+        this.key = key;
+        this.increment = increment;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_INCRBY);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(String.valueOf(increment)));
+        return param;
+    }
+}
+```
+
+```java
+package tech.smartboot.redisun.cmd;
+
+import tech.smartboot.redisun.Command;
+import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Redis INCR Command Implementation Class
+ * <p>
+ * Increments the number value stored in key by one.
+ * If key does not exist, the key's value will first be initialized to 0, and then the INCR operation will be performed.
+ * </p>
+ * 
+ * @see <a href="https://redis.io/commands/incr/">Redis INCR Command</a>
+ */
+public class IncrCommand extends Command {
+    private static final BulkStrings CONSTANTS_INCR = BulkStrings.of("INCR");
+    private final String key;
+
+    public IncrCommand(String key) {
+        this.key = key;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_INCR);
+        param.add(RESP.ofString(key));
+        return param;
+    }
+}
+```
+
+### 2. Add Methods in Client
+
+Add corresponding methods in [Redisun.java](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java):
+
+```java
+/**
+ * Adds the given increment value (increment) to the value stored at key
+ *
+ * @param key       The key to increment
+ * @param increment The increment value
+ * @return The value of key after executing the command
+ */
+public long incrBy(String key, long increment) {
+    RESP r = syncExecute(new IncrByCommand(key, increment));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+For some core commands, asynchronous interfaces also need to be provided to meet the needs of high-concurrency scenarios:
+
+```
+/**
+ * Adds the given increment value (increment) to the value stored at key (asynchronous version)
+ *
+ * @param key       The key to increment
+ * @param increment The increment value
+ * @return The value of key after executing the command
+ */
+public CompletableFuture<Long> asyncIncrBy(String key, long increment) {
+    return execute(new IncrByCommand(key, increment)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+### List Command Client Method Examples
+
+List commands usually need to handle different return types. For example, insert commands return list length (integer), while pop commands return element values (string) or null:
+
+```java
+/**
+ * Inserts one or more values at the head (left side) of the list
+ *
+ * @param key    The key of the list
+ * @param values One or more values to insert
+ * @return The length of the list after execution
+ */
+public long lpush(String key, String... values) {
+    RESP r = syncExecute(new LPushCommand(key, values));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+```java
+/**
+ * Removes and returns the first element of the list (left side)
+ *
+ * @param key The key of the list
+ * @return The first element of the list, or null if the list is empty
+ */
+public String lpop(String key) {
+    RESP r = syncExecute(new LPopCommand(key));
+    if (r instanceof Nulls) {
+        return null;
+    } else if (r instanceof BulkStrings) {
+        return ((BulkStrings) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+For some core commands, asynchronous interfaces also need to be provided to meet the needs of high-concurrency scenarios:
+
+```java
+/**
+ * Inserts one or more values at the head (left side) of the list (asynchronous version)
+ *
+ * @param key    The key of the list
+ * @param values One or more values to insert
+ * @return The length of the list after execution
+ */
+public CompletableFuture<Long> asyncLpush(String key, String... values) {
+    return execute(new LPushCommand(key, values)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue().longValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+```java
+/**
+ * Removes and returns the first element of the list (left side) (asynchronous version)
+ *
+ * @param key The key of the list
+ * @return The first element of the list, or null if the list is empty
+ */
+public CompletableFuture<String> asyncLpop(String key) {
+    return execute(new LPopCommand(key)).thenApply(resp -> {
+        if (resp instanceof Nulls) {
+            return null;
+        } else if (resp instanceof BulkStrings) {
+            return ((BulkStrings) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+```java
+/**
+ * Increments the number value stored in key by one
+ *
+ * @param key The key to increment
+ * @return The value of key after executing the command
+ */
+public long incr(String key) {
+    RESP r = syncExecute(new IncrCommand(key));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+For some core commands, asynchronous interfaces also need to be provided to meet the needs of high-concurrency scenarios:
+
+```
+/**
+ * Increments the number value stored in key by one (asynchronous version)
+ *
+ * @param key The key to increment
+ * @return The value of key after executing the command
+ */
+public CompletableFuture<Long> asyncIncr(String key) {
+    return execute(new IncrCommand(key)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+Design principles for synchronous and asynchronous interfaces:
+
+1. Synchronous method names follow the `command` format, such as [set](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L121-L124), [get](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L96-L104), [del](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L172-L174)
+2. Asynchronous method names follow the `asyncCommand` format, such as [asyncSet](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L142-L144), [asyncGet](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L-L), [asyncDel](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L-L)
+3. Synchronous methods internally call the [syncExecute](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L187-L197) method to execute commands and block waiting for results
+4. Asynchronous methods return [CompletableFuture](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L23-L23) objects by calling the [execute](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L205-L239) method, allowing non-blocking operations
+
+### 3. Write Test Cases
+
+Add test cases for the new command in the test file:
+
+```java
+@Test
+public void testIncr() {
+    String key = "test_incr_key";
+    // First delete any existing keys
+    redisun.del(key);
+    // The first call should return 1
+    Assert.assertEquals(1, redisun.incr(key));
+    // The second call should return 2
+    Assert.assertEquals(2, redisun.incr(key));
+    // Verify that the GET command can correctly get the value
+    Assert.assertEquals("2", redisun.get(key));
+}
+```
+
+## Command Implementation Best Practices ✅
+
+### 1. Constant Optimization
+
+For fixed strings used in commands, it is recommended to define them as static constants to improve performance:
+
+```java
+private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+private static final BulkStrings CONSTANTS_NX = BulkStrings.of("NX");
+```
+
+### 2. Parameter Processing
+
+Use RESP utility classes to handle parameter conversion:
+
+```java
+param.add(RESP.ofString(key));
+param.add(RESP.ofString(value));
+```
+
+### 3. Response Processing
+
+Appropriately handle responses according to the Redis command's response type:
+
+```java
+// Handle integer responses
+if (r instanceof Integers) {
+    return ((Integers) r).getValue();
+}
+
+// Handle string responses
+if (r instanceof SimpleStrings) {
+    return SimpleStrings.OK.equals(((SimpleStrings) r).getValue());
+}
+
+// Handle null responses
+if (r instanceof Nulls) {
+    return null;
+}
+```
+
+## Complex Command Examples 💡
+
+Let's look at a more complex command example - [SetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java), which supports multiple options:
+
+```java
+public class SetCommand extends Command {
+    // Constant definitions
+    private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+    private static final BulkStrings CONSTANTS_NX = BulkStrings.of("NX");
+    private static final BulkStrings CONSTANTS_XX = BulkStrings.of("XX");
+    
+    private final String key;
+    private final String value;
+    private BulkStrings exists; // NX/XX options
+    
+    // Expiration time option processor
+    private Consumer<List<BulkStrings>> expire;
+    
+    public SetCommand(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_SET);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(value));
+        
+        // Add NX/XX options
+        if (exists != null) {
+            param.add(exists);
+        }
+        
+        // Add expiration time options
+        if (expire != null) {
+            expire.accept(param);
+        }
+        return param;
+    }
+    
+    // Set NX option
+    public SetCommand setIfNotExists() {
+        exists = CONSTANTS_NX;
+        return this;
+    }
+    
+    // Set XX option
+    public SetCommand setIfExists() {
+        exists = CONSTANTS_XX;
+        return this;
+    }
+}
+```
+
+### List Command Examples
+
+List commands are typically used to handle list data structures in Redis. Here are some list command implementation examples:
+
+```java
+public class LPushCommand extends Command {
+    private static final BulkStrings CONSTANTS_LPUSH = BulkStrings.of("LPUSH");
+    private final String key;
+    private final String[] values;
+
+    public LPushCommand(String key, String... values) {
+        this.key = key;
+        this.values = values;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_LPUSH);
+        param.add(RESP.ofString(key));
+        for (String value : values) {
+            param.add(RESP.ofString(value));
+        }
+        return param;
+    }
+}
+```
+
+```java
+public class LPopCommand extends Command {
+    private static final BulkStrings CONSTANTS_LPOP = BulkStrings.of("LPOP");
+    private final String key;
+
+    public LPopCommand(String key) {
+        this.key = key;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_LPOP);
+        param.add(RESP.ofString(key));
+        return param;
+    }
+}
+```
+
+### Sorted Set Command Examples
+
+Sorted set commands are used to handle sorted set data structures in Redis. Here are some sorted set command implementation examples:
+
+```java
+public class ZRemCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZREM = BulkStrings.of("ZREM");
+    private final String key;
+    private final String[] members;
+
+    public ZRemCommand(String key, String... members) {
+        this.key = key;
+        this.members = members;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(2 + members.length);
+        param.add(CONSTANTS_ZREM);
+        param.add(RESP.ofString(key));
+        for (String member : members) {
+            param.add(RESP.ofString(member));
+        }
+        return param;
+    }
+}
+```
+
+```java
+public class ZRangeCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZRANGE = BulkStrings.of("ZRANGE");
+    private static final BulkStrings CONSTANTS_BYSCORE = BulkStrings.of("BYSCORE");
+    private static final BulkStrings CONSTANTS_BYLEX = BulkStrings.of("BYLEX");
+    private static final BulkStrings CONSTANTS_REV = BulkStrings.of("REV");
+    private static final BulkStrings CONSTANTS_WITHSCORES = BulkStrings.of("WITHSCORES");
+    private static final BulkStrings CONSTANTS_LIMIT = BulkStrings.of("LIMIT");
+    
+    private final String key;
+    private final String start;
+    private final String stop;
+    
+    // Four option parameters
+    private boolean byScore = false;
+    private boolean byLex = false;
+    private boolean rev = false;
+    private boolean withScores = false;
+    
+    // LIMIT parameters
+    private boolean hasLimit = false;
+    private long limitOffset;
+    private long limitCount;
+
+    public ZRangeCommand(String key, String start, String stop) {
+        this.key = key;
+        this.start = start;
+        this.stop = stop;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(10);
+        param.add(CONSTANTS_ZRANGE);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(start));
+        param.add(RESP.ofString(stop));
+        
+        // Add option parameters
+        if (byScore) {
+            param.add(CONSTANTS_BYSCORE);
+        }
+        
+        if (byLex) {
+            param.add(CONSTANTS_BYLEX);
+        }
+        
+        if (rev) {
+            param.add(CONSTANTS_REV);
+        }
+        
+        // Add LIMIT parameters
+        if (hasLimit) {
+            param.add(CONSTANTS_LIMIT);
+            param.add(RESP.ofString(String.valueOf(limitOffset)));
+            param.add(RESP.ofString(String.valueOf(limitCount)));
+        }
+        
+        if (withScores) {
+            param.add(CONSTANTS_WITHSCORES);
+        }
+        
+        return param;
+    }
+    
+    /**
+     * Set BYSCORE option: query by score
+     * 
+     * @return Current ZRangeCommand instance, supports method chaining
+     */
+    public ZRangeCommand byScore() {
+        this.byScore = true;
+        return this;
+    }
+    
+    /**
+     * Set BYLEX option: query by lexicographical order
+     * 
+     * @return Current ZRangeCommand instance, supports method chaining
+     */
+    public ZRangeCommand byLex() {
+        this.byLex = true;
+        return this;
+    }
+    
+    /**
+     * Set REV option: reverse order
+     * 
+     * @return Current ZRangeCommand instance, supports method chaining
+     */
+    public ZRangeCommand rev() {
+        this.rev = true;
+        return this;
+    }
+    
+    /**
+     * Set WITHSCORES option: also return member scores
+     * 
+     * @return Current ZRangeCommand instance, supports method chaining
+     */
+    public ZRangeCommand withScores() {
+        this.withScores = true;
+        return this;
+    }
+    
+    /**
+     * Set LIMIT option: limit the number of returned results
+     * 
+     * @param offset Number of elements to skip
+     * @param count  Number of elements to return
+     * @return Current ZRangeCommand instance, supports method chaining
+     */
+    public ZRangeCommand limit(long offset, long count) {
+        this.hasLimit = true;
+        this.limitOffset = offset;
+        this.limitCount = count;
+        return this;
+    }
+}
+```
+
+```java
+public class ZScoreCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZSCORE = BulkStrings.of("ZSCORE");
+    private final String key;
+    private final String member;
+
+    public ZScoreCommand(String key, String member) {
+        this.key = key;
+        this.member = member;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(3);
+        param.add(CONSTANTS_ZSCORE);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(member));
+        return param;
+    }
+}
+```
+
+## Performance Benchmark Test Case Development 📊
+
+To evaluate the performance of important commands, we need to write corresponding benchmark test cases for them. Note that not all commands require benchmark testing; typically only core or high-frequency commands are benchmarked to evaluate their performance.
+
+### Benchmark Testing Framework Introduction
+
+Redisun uses JUnit to write benchmark test cases, mainly testing the performance of synchronous and asynchronous operation modes. Benchmarks are located in the [bench](https://github.com/smartboot/redisun/tree/master/src/test/java/tech/smartboot/redisun/bench) package:
+
+```
+src/test/java/tech/smartboot/redisun/bench/
+├── Bench.java              # Benchmark configuration class
+├── RedisunBenchmark.java   # Redisun benchmark class
+└── RedissonBenchmark.java  # Redisson control group benchmark class
+```
+
+### Adding Benchmark Tests for New Commands
+
+When you implement an important command for Redisun, you need to add the corresponding benchmark test methods in [RedisunBenchmark.java](https://github.com/smartboot/redisun/blob/master/src/test/java/tech/smartboot/redisun/bench/RedisunBenchmark.java). As mentioned earlier, only core or high-frequency commands need benchmark testing.
+
+Taking the `INCR` command we implemented earlier as an example, you can add the following benchmark test methods:
+
+```java
+@Test
+public void incr() {
+    String key = "bench_incr_key";
+    // Initialize key-value
+    redisun.set(key, "0");
+    
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < SET_COUNT; i++) {
+        redisun.incr(key);
+    }
+    System.out.println("redisun incr cost " + (System.currentTimeMillis() - start) + "ms");
+}
+
+@Test
+public void incrConcurrent() throws InterruptedException {
+    String key = "bench_incr_concurrent_key";
+    // Initialize key-value
+    redisun.set(key, "0");
+    
+    CountDownLatch latch = new CountDownLatch(SET_COUNT);
+    long start = System.currentTimeMillis();
+    
+    for (int i = 0; i < CONCURRENT_CLIENT_COUNT; i++) {
+        Thread thread = new Thread(() -> {
+            int j = 0;
+            while (latch.getCount() > 0) {
+                redisun.incr(key);
+                j++;
+                latch.countDown();
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
+    
+    latch.await();
+    System.out.println("redisun concurrent incr cost " + (System.currentTimeMillis() - start) + "ms");
+}
+```
+
+Taking list commands as an example, you can add the following benchmark test methods:
+
+```java
+@Test
+public void lpush() {
+    String key = "bench_lpush_key";
+    // First delete any existing keys
+    redisun.del(key);
+    
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < SET_COUNT; i++) {
+        redisun.lpush(key, "value" + i);
+    }
+    System.out.println("redisun lpush cost " + (System.currentTimeMillis() - start) + "ms");
+}
+
+@Test
+public void lpushConcurrent() throws InterruptedException {
+    String key = "bench_lpush_concurrent_key";
+    // First delete any existing keys
+    redisun.del(key);
+    
+    CountDownLatch latch = new CountDownLatch(SET_COUNT);
+    long start = System.currentTimeMillis();
+    
+    for (int i = 0; i < CONCURRENT_CLIENT_COUNT; i++) {
+        Thread thread = new Thread(() -> {
+            int j = 0;
+            while (latch.getCount() > 0) {
+                redisun.lpush(key, "value" + j);
+                j++;
+                latch.countDown();
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
+    
+    latch.await();
+    System.out.println("redisun concurrent lpush cost " + (System.currentTimeMillis() - start) + "ms");
+}
+```
+
+### Benchmark Testing Best Practices ✅
+
+1. **Test Environment Consistency**
+   - Ensure all tests run in the same hardware and network environment
+   - Clean the Redis database before each test to avoid historical data affecting test results
+
+2. **Comprehensive Test Coverage**
+   - Synchronous operation performance testing
+   - Asynchronous operation performance testing
+   - Concurrent scenario performance testing
+
+3. **Result Recording and Comparison**
+   - Record execution time as a performance metric
+   - Compare with other clients (such as Redisson)
+   - Test performance under different load conditions
+
+## Contribution Process 🤝
+
+We welcome any form of contribution! Please follow this process to participate in contributions:
+
+1. **Fork the project** - Fork the Redisun project on Gitee or GitHub
+2. **Create a branch** - Create a new branch for your feature
+3. **Implement the command** - Implement the new Redis command according to this guide
+4. **Write tests** - Write complete test cases for the new command
+5. **Add benchmark tests** - Add performance benchmark tests for important new commands (optional)
+6. **Write documentation** - Write corresponding documentation for the new command in the cmd directory
+7. **Commit code** - Commit your code and push it to your repository
+8. **Create PR** - Create a Pull Request describing your implementation
+
+
+## Documentation Writing Specifications 📝
+
+When you implement a new Redis command, you need to write corresponding documentation for it.
+The documentation is located in the [/pages/src/content/docs/cmd](https://github.com/smartboot/redisun/blob/master/pages/src/content/docs/cmd) directory, with each command having a corresponding .mdx file.
+
+Please follow these documentation writing specifications:
+
+### Document Structure
+
+Each command document should contain the following sections:
+
+1. **File header** - Contains metadata such as title and description
+2. **Command introduction** - Briefly introduces the function of the command
+3. **Redis native command syntax** - Shows the native Redis command syntax
+4. **Parameter description** - Detailed description of each parameter's meaning
+5. **Detailed explanation** - Detailed explanation and usage scenarios of the command
+6. **Redisun usage** - Shows how to use the command in Redisun
+7. **Notes** - Things to note when using the command
+8. **References** - Links to Redis official documentation
+
+### Detailed Specifications
+
+#### 1. File Header
+```
+---
+title: Command Name
+description: Briefly describe the function of this command
+sidebar:
+  order: Number (arranged alphabetically)
+---
+```
+
+#### 2. Command Introduction
+After the file header, briefly introduce the function of the command without a level-one heading.
+
+#### 3. Redis Native Command Syntax
+Use level-three heading "### Redis Native Command Syntax" and use the Code component to display the syntax:
+```
+### Redis Native Command Syntax
+
+<Code code={`Command Syntax`} lang="bash" />
+```
+
+#### 4. Parameter Description
+List parameter descriptions in bold format without headings:
+```
+**Parameter Description**
+
+- **Parameter Name**: Parameter Description
+```
+
+#### 5. Detailed Explanation
+Use level-three heading "### Detailed Explanation" and can include subheadings to organize content.
+
+#### 6. Redisun Usage
+Use level-two heading "## Redisun Usage" to show how to use the command in Redisun and provide code examples.
+
+#### 7. Notes
+List things to note when using the command.
+
+#### 8. References
+Provide links to Redis official documentation.
+
+## Community Support 💬
+
+If you encounter any problems during development:
+
+- Check [Redis Official Documentation](https://redis.io/commands/) to understand command specifications
+- Ask questions in project Issues
+- Contact project maintainers for help
+
+Let's build a better Redisun together! ✨

@@ -1,0 +1,70 @@
+---
+title: FLUSHALL
+description: The Redis FLUSHALL command is used to delete all keys from all databases.
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The FLUSHALL command deletes all keys from all existing databases, not just the currently selected database. This command never fails.
+
+The time complexity of the FLUSHALL command is O(N), where N is the total number of keys in all databases.
+
+### Redis Native Command Syntax
+
+<Code code={`FLUSHALL [ASYNC | SYNC]`} lang="bash" />
+
+**Parameter Description**
+
+- **ASYNC**: Asynchronously flush databases
+- **SYNC**: Synchronously flush databases
+
+### Detailed Explanation
+
+The FLUSHALL command is one of the most powerful commands in Redis. It clears all data in the entire Redis instance, including all keys in all databases.
+
+By default, FLUSHALL synchronously flushes all databases. Starting from Redis 6.2, the default flush mode can be changed to asynchronous by setting the lazyfree-lazy-user-flush configuration directive to "yes".
+
+#### Flush Modes
+
+- ASYNC: Asynchronously flush databases without blocking the server
+- SYNC: Synchronously flush databases, blocking the server until the operation is complete
+
+#### Notes
+
+1. The asynchronous FLUSHALL command only deletes keys that exist at the time the command is called. Keys created during command execution will not be deleted
+2. This command does not delete functions
+3. In addition to clearing all databases, this command also clears the RDB persistence file, aborts any ongoing snapshots, and saves an empty RDB file
+
+## Redisun Usage
+
+In redisun, the FLUSHALL command is implemented through the [FlushAllCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushAllCommand.java) class and the `flushAll` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Clear all databases
+boolean result = redisun.flushAll();
+if (result) {
+    System.out.println("All databases cleared successfully");
+}`} lang="java" />
+
+## History Changes
+
+- Redis 4.0.0: Added ASYNC flush mode modifier
+- Redis 6.2.0: Added SYNC flush mode modifier
+
+## Notes
+
+1. FLUSHALL is a dangerous command that deletes all data. Please use it with caution
+2. Before using in a production environment, ensure that important data has been backed up
+3. Asynchronous mode can reduce the impact on server performance
+
+## References
+
+- [Redis FLUSHALL Command Official Documentation](https://redis.io/commands/flushall/)

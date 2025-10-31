@@ -1,9 +1,11 @@
 package tech.smartboot.redisun.cmd;
 
+import org.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.Command;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.RESP;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,10 +45,12 @@ public class SetCommand extends Command {
     private static final BulkStrings CONSTANTS_EX = BulkStrings.of("EX");
     private static final BulkStrings CONSTANTS_PX = BulkStrings.of("PX");
     private static final BulkStrings CONSTANTS_PXAT = BulkStrings.of("PXAT");
+    private static final byte[] HEADER = new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK};
+    private static final byte[] PART = new byte[]{'\r', '\n', RESP.RESP_DATA_TYPE_BULK};
     // 要设置的键
-    private final String key;
+    private final byte[] key;
     // 要设置的值
-    private final String value;
+    private final byte[] value;
     // NX/XX选项，控制键是否存在的行为
     private BulkStrings exists;
     // 过期时间选项的处理器
@@ -61,8 +65,8 @@ public class SetCommand extends Command {
      * @param value 值
      */
     public SetCommand(String key, String value) {
-        this.key = key;
-        this.value = value;
+        this.key = key.getBytes();
+        this.value = value.getBytes();
     }
 
     /**
@@ -88,6 +92,21 @@ public class SetCommand extends Command {
             expire.accept(param);
         }
         return param;
+    }
+
+    @Override
+    public void writeTo(WriteBuffer writeBuffer) throws IOException {
+        if (exists != null || expire != null) {
+            super.writeTo(writeBuffer);
+            return;
+        }
+        writeBuffer.write(HEADER);
+        RESP.writeInt(writeBuffer, key.length);
+        writeBuffer.write(key);
+        writeBuffer.write(PART);
+        RESP.writeInt(writeBuffer, value.length);
+        writeBuffer.write(value);
+        writeBuffer.write(RESP.CRLF);
     }
 
     /**

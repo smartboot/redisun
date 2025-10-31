@@ -1,0 +1,62 @@
+---
+title: APPEND
+description: Redis APPEND 命令用于将值追加到指定键的字符串值末尾。
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+如果 key 已经存在并且是一个字符串，APPEND 命令将 value 追加到 key 原来的值的末尾。
+
+如果 key 不存在，APPEND 就简单地将给定 key 设为 value ，就像执行 SET key value 一样。
+
+### Redis 原生命令语法
+
+<Code code={`APPEND key value`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要追加的键
+- **value**: 要追加的值
+
+### 详细说明
+
+APPEND 命令是专门用于字符串值的操作，它可以在现有字符串值的末尾追加新的内容。这个命令在处理日志、构建大型字符串等场景中非常有用。
+
+## Redisun 使用方式
+
+在 redisun 中，APPEND 命令通过 AppendCommand 类和 Redisun 类中的 append 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 对不存在的键执行APPEND，相当于SET操作
+int length = redisun.append("mykey", "Hello");
+System.out.println("String length: " + length); // 输出: 5
+
+// 对已存在的键追加内容
+length = redisun.append("mykey", " World");
+System.out.println("String length: " + length); // 输出: 11
+
+// 获取最终的字符串值
+String value = redisun.get("mykey");
+System.out.println("Value: " + value); // 输出: Hello World
+
+// 异步版本
+CompletableFuture<Integer> future = redisun.asyncAppend("mykey", "!");
+future.thenAccept(newLength -> System.out.println("New length: " + newLength));`} lang="java" />
+
+## 注意事项
+
+1. 如果 key 不存在，APPEND 命令的行为类似于 SET 命令
+2. 如果 key 存在但不是字符串类型，会抛出异常
+3. 命令返回追加操作后 key 中字符串的长度
+4. 可以追加空字符串，但不会改变原字符串内容
+
+## 参考资料
+
+- [Redis APPEND 命令官方文档](https://redis.io/commands/append/)

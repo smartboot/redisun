@@ -1,0 +1,142 @@
+---
+title: ZRANGE
+description: Redis ZRANGE 命令用于返回有序集合中指定范围的成员。
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+ZRANGE 命令返回存储在键 key 的有序集合中，指定范围内的成员。
+
+从 Redis 6.2.0 开始，ZRANGE 命令支持 BYSCORE、BYLEX 和 REV 选项，可以替代 ZREVRANGE、ZRANGEBYSCORE、ZREVRANGEBYSCORE、ZRANGEBYLEX 和 ZREVRANGEBYLEX 命令。
+
+ZRANGE 命令的时间复杂度为 O(log(N)+M)，其中 N 是有序集合中的元素数量，M 是返回的元素数量。
+
+### Redis 原生命令语法
+
+<Code code={`ZRANGE key min max [BYSCORE|BYLEX] [REV] [WITHSCORES]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 有序集合的键
+- **min**: 范围起始位置（包含），从 0 开始计数
+- **max**: 范围结束位置（包含），可以使用负数表示从末尾开始计数
+- **BYSCORE**: 按分数查询
+- **BYLEX**: 按字典序查询
+- **REV**: 倒序排列
+- **WITHSCORES**: 可选参数，同时返回成员的分数
+
+### 详细说明
+
+ZRANGE 命令返回有序集合中指定范围内的成员，成员按照分数从低到高的顺序排列。下标参数 min 和 max 都以 0 为底，即 0 表示有序集合的第一个成员，1 表示第二个成员，以此类推。也可以使用负数下标，-1 表示最后一个成员，-2 表示倒数第二个成员，以此类推。
+
+从 Redis 6.2.0 开始，ZRANGE 命令支持以下选项：
+
+- **BYSCORE**: 按分数查询，此时 min 和 max 表示分数范围
+- **BYLEX**: 按字典序查询，此时 min 和 max 表示字典序范围
+- **REV**: 倒序排列，元素从最高分数到最低分数排序
+- **WITHSCORES**: 同时返回成员的分数
+
+#### 返回值
+
+- 如果没有指定 WITHSCORES 选项，返回指定范围内的成员列表
+- 如果指定了 WITHSCORES 选项，返回成员和分数交替的列表
+
+#### 示例
+
+<Code code={`redis> ZADD myzset 1 "one" 2 "two" 3 "three"
+(integer) 3
+redis> ZRANGE myzset 0 -1
+1) "one"
+2) "two"
+3) "three"
+redis> ZRANGE myzset 2 3
+1) "three"
+redis> ZRANGE myzset -2 -1
+1) "two"
+2) "three"
+redis> ZRANGE myzset 0 1 WITHSCORES
+1) "one"
+2) "1"
+3) "two"
+4) "2"
+redis> ZRANGE myzset 1 2 BYSCORE
+1) "two"
+2) "three"
+redis> ZRANGE myzset 0 1 REV
+1) "three"
+2) "two"`} lang="bash" />
+
+## Redisun 使用方式
+
+在 redisun 中，ZRANGE 命令通过 [ZRangeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRangeCommand.java) 类和 Redisun 类中的 `zrange` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 添加一些测试数据
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.0, "two");
+redisun.zadd("myzset", 3.0, "three");
+
+// 获取所有成员
+List<String> members = redisun.zrange("myzset", 0, -1);
+
+// 获取指定范围的成员
+List<String> rangeMembers = redisun.zrange("myzset", 0, 1);
+
+// 获取指定范围的成员及其分数
+List<String> membersWithScores = redisun.zrange("myzset", 0, 1, cmd -> cmd.withScores());
+
+// 按分数范围查询
+List<String> byScoreMembers = redisun.zrange("myzset", "1", "2", cmd -> cmd.byScore());
+
+// 按字典序查询
+List<String> byLexMembers = redisun.zrange("myzset", "[a", "[z", cmd -> cmd.byLex());
+
+// 倒序排列
+List<String> revMembers = redisun.zrange("myzset", 0, -1, cmd -> cmd.rev());
+
+// 组合多个选项
+List<String> revWithScores = redisun.zrange("myzset", 0, -1, cmd -> cmd.rev().withScores());`} lang="java" />
+
+### 异步用法
+
+<Code code={`// 异步获取成员
+CompletableFuture<List<String>> future = redisun.asyncZrange("myzset", 0, -1);
+
+// 处理异步结果
+future.thenAccept(members -> {
+    System.out.println("Members: " + members);
+});
+
+// 异步获取成员及其分数
+CompletableFuture<List<String>> futureWithScores = redisun.asyncZrange("myzset", 0, 1, cmd -> cmd.withScores());
+
+// 处理异步结果
+futureWithScores.thenAccept(membersWithScores -> {
+    System.out.println("Members with scores: " + membersWithScores);
+});
+
+// 异步按分数范围查询
+CompletableFuture<List<String>> futureByScore = redisun.asyncZrange("myzset", "1", "2", cmd -> cmd.byScore());
+
+// 处理异步结果
+futureByScore.thenAccept(members -> {
+    System.out.println("Members by score: " + members);
+});`} lang="java" />
+
+## 注意事项
+
+1. 范围参数超出有序集合范围时不会报错，会返回实际存在的成员
+2. 起始位置大于结束位置时会返回空列表
+3. 使用 WITHSCORES 选项时，返回结果中成员和分数交替出现
+
+## 参考资料
+
+- [Redis ZRANGE 命令官方文档](https://redis.io/docs/latest/commands/zrange/)

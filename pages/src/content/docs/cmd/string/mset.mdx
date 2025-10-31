@@ -1,0 +1,64 @@
+---
+title: MSET
+description: Redis MSET 命令用于同时设置多个键值对。
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+同时设置一个或多个 key-value 对。
+
+如果某个给定 key 已经存在，那么 MSET 会用新值覆盖原来的旧值，不存在的 key 会被创建。
+
+MSET 是一个原子性(atomic)操作，整个 MSET 操作要么全部执行要么全部不执行。
+
+### Redis 原生命令语法
+
+<Code code={`MSET key value [key value ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要设置的键
+- **value**: 要设置的值
+
+### 详细说明
+
+MSET 命令是原子操作，用于同时设置多个键值对。相比于多次调用 SET 命令，MSET 可以减少网络往返次数，提高性能。
+
+## Redisun 使用方式
+
+在 redisun 中，MSET 命令通过 MSetCommand 类和 Redisun 类中的 mset 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 准备键值对映射
+Map<String, String> keyValuePairs = new HashMap<>();
+keyValuePairs.put("key1", "value1");
+keyValuePairs.put("key2", "value2");
+keyValuePairs.put("key3", "value3");
+
+// 设置多个键值对
+boolean result = redisun.mset(keyValuePairs);
+System.out.println("MSET operation result: " + result);
+
+// 异步版本
+CompletableFuture<Boolean> future = redisun.asyncMset(keyValuePairs);
+future.thenAccept(success -> {
+    System.out.println("Async MSET operation result: " + success);
+});`} lang="java" />
+
+## 注意事项
+
+1. MSET 是原子操作，要么全部执行成功，要么全部执行失败
+2. 如果某个键已存在，其值会被新值覆盖
+3. 性能优于多次调用 SET 命令，因为它减少了网络往返次数
+4. 如果键和值的数量不匹配，可能会导致错误
+
+## 参考资料
+
+- [Redis MSET 命令官方文档](https://redis.io/commands/mset/)

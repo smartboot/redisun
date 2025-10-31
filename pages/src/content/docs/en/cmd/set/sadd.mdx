@@ -1,0 +1,63 @@
+---
+title: SADD
+description: The Redis SADD command is used to add one or more members to a set.
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Add one or more members to a set. Members that already exist in the set will be ignored.
+
+If the set does not exist, a new set containing only the added members as members is created.
+
+### Redis Native Command Syntax
+
+<Code code={`SADD key member [member ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the set
+- **member**: One or more members to add
+
+### Detailed Explanation
+
+The SADD command is used to add one or more members to a Redis set. Sets are unordered and non-repeating collections of strings, and each member is unique.
+
+## Redisun Usage
+
+In redisun, the SADD command is implemented through the SAddCommand class and the sadd method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Add a single member to the set
+int added = redisun.sadd("myset", "member1");
+System.out.println("Added members: " + added); // Output: 1
+
+// Add multiple members to the set
+added = redisun.sadd("myset", "member2", "member3");
+System.out.println("Added members: " + added); // Output: 2
+
+// Add duplicate members, only new members will be added
+added = redisun.sadd("myset", "member1", "member4");
+System.out.println("Added members: " + added); // Output: 1
+
+// Asynchronous version
+CompletableFuture<Integer> future = redisun.asyncSadd("myset", "member5");
+future.thenAccept(count -> System.out.println("Async added members: " + count));`} lang="java" />
+
+## Notes
+
+1. If the set does not exist, a new set will be automatically created and members will be added
+2. Members that already exist in the set will be ignored and not added repeatedly
+3. The command returns the number of new elements successfully added to the set
+4. Each member in the set is unique, duplicates are not allowed
+5. Sets are suitable for deduplication scenarios such as tags, friend lists, etc.
+
+## References
+
+- [Redis SADD Command Official Documentation](https://redis.io/commands/sadd/)

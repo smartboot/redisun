@@ -1,0 +1,62 @@
+---
+title: APPEND
+description: The Redis APPEND command is used to append a value to the end of the string value of a specified key.
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+If the key already exists and is a string, the APPEND command appends the value to the end of the key's original value.
+
+If the key does not exist, APPEND simply sets the given key to value, just like executing SET key value.
+
+### Redis Native Command Syntax
+
+<Code code={`APPEND key value`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to append to
+- **value**: The value to append
+
+### Detailed Explanation
+
+The APPEND command is an operation specifically for string values. It can append new content to the end of an existing string value. This command is very useful in scenarios such as handling logs and building large strings.
+
+## Redisun Usage
+
+In redisun, the APPEND command is implemented through the AppendCommand class and the append method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Execute APPEND on a non-existent key, equivalent to SET operation
+int length = redisun.append("mykey", "Hello");
+System.out.println("String length: " + length); // Output: 5
+
+// Append content to an existing key
+length = redisun.append("mykey", " World");
+System.out.println("String length: " + length); // Output: 11
+
+// Get the final string value
+String value = redisun.get("mykey");
+System.out.println("Value: " + value); // Output: Hello World
+
+// Asynchronous version
+CompletableFuture<Integer> future = redisun.asyncAppend("mykey", "!");
+future.thenAccept(newLength -> System.out.println("New length: " + newLength));`} lang="java" />
+
+## Notes
+
+1. If the key does not exist, the APPEND command behaves like the SET command
+2. If the key exists but is not of string type, an exception will be thrown
+3. The command returns the length of the string in the key after the append operation
+4. Empty strings can be appended, but they will not change the original string content
+
+## References
+
+- [Redis APPEND Command Official Documentation](https://redis.io/commands/append/)

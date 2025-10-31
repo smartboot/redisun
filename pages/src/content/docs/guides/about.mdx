@@ -1,0 +1,123 @@
+---
+title: Redisun 介绍
+description: Redisun 是一个基于 smart-socket 开发的轻量级高性能 Redis 客户端，专为 Java 平台设计。
+sidebar:
+  order: 1
+---
+
+import { Card } from '@astrojs/starlight/components';
+
+## Redisun 是什么？
+
+Redisun 是一个基于 [smart-socket](https://gitee.com/smartboot/smart-socket) 开发的轻量级高性能 Redis 客户端，专为 Java 平台设计。它支持异步非阻塞 I/O 操作，提供与 Redis 服务器兼容的内存键值存储访问能力。
+
+<Card title="💡 核心特性" icon="rocket">
+  - **轻量级设计**：核心代码仅由少量类组成，jar包仅33KB，资源占用极小
+  - **高性能通信**：基于 smart-socket Java AIO 实现，单线程处理能力强，资源消耗低
+  - **连接复用技术**：创新的连接复用机制，一个连接可同时处理多个并发请求
+  - **RESP 协议支持**：完整支持 Redis 序列化协议（RESP），兼容 Redis 服务器
+</Card>
+
+## 基本使用示例
+
+下面是一个简单的使用示例，展示了如何使用 Redisun 进行基本的 Redis 操作：
+
+```java
+import tech.smartboot.redisun.Redisun;
+
+public class BasicExample {
+    public static void main(String[] args) {
+        // 创建 Redisun 客户端实例
+        Redisun redisun = Redisun.create(options -> 
+            options.setAddress("127.0.0.1:6379")  // 设置 Redis 服务器地址
+                   .debug(true)                    // 开启调试模式
+        );
+
+        try {
+            // 设置键值对
+            boolean setResult = redisun.set("hello", "world");
+            System.out.println("SET操作结果: " + setResult);
+
+            // 获取键值
+            String getResult = redisun.get("hello");
+            System.out.println("GET操作结果: " + getResult);
+
+            // 删除键
+            int delResult = redisun.del("hello");
+            System.out.println("DEL操作结果: " + delResult);
+        } finally {
+            // 关闭客户端，释放资源
+            redisun.close();
+        }
+    }
+}
+```
+
+### 更多操作示例
+
+Redisun 还支持更多 Redis 命令，例如有序集合操作：
+
+```java
+// 添加元素到有序集合
+int zaddResult = redisun.zadd("myzset", 1.0, "member1");
+System.out.println("ZADD操作结果: " + zaddResult);
+
+// 可选参数设置
+boolean setResultWithOptions = redisun.set("key", "value", cmd -> 
+    cmd.expire(60)              // 设置60秒过期
+       .setIfNotExists()        // 仅在键不存在时设置
+);
+System.out.println("带选项的SET操作结果: " + setResultWithOptions);
+```
+
+通过这些示例，您可以看到 Redisun 的 API 设计简洁直观，易于集成到您的项目中。
+
+## Redis 命令支持情况
+
+Redisun 正在不断扩展对 Redis 命令的支持。以下是当前命令实现状态：
+
+### ✅ 已完全支持的命令
+
+| 命令 | 描述 | 实现类 | 备注 |
+|------|------|--------|------|
+| `HELLO` | 服务器握手和认证 | [HelloCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HelloCommand.java) | 支持认证和协议协商 |
+| `SET` | 设置键值对 | [SetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) | 完整选项支持：NX、XX、EX、PX、PXAT、KEEPTTL |
+| `GET` | 获取键的值 | [GetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/GetCommand.java) | 基本键值检索 |
+| `DEL` | 删除一个或多个键 | [DelCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DelCommand.java) | 支持多键删除 |
+| `ZADD` | 向有序集合添加成员 | [ZAddCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZAddCommand.java) | 基本有序集合成员添加 |
+| `SELECT` | 切换数据库 | [SelectCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SelectCommand.java) | 仅在初始连接时执行，不支持运行时切换 |
+| `DBSIZE` | 返回当前数据库的键数量 | [DBSizeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DBSizeCommand.java) | 统计当前数据库键数量 |
+| `FLUSHALL` | 清空所有数据库 | [FlushAllCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushAllCommand.java) | 删除所有数据库中的键 |
+| `FLUSHDB` | 清空当前数据库 | [FlushDbCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushDbCommand.java) | 清除当前数据库 |
+| `EXISTS` | 检查键是否存在 | [ExistsCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ExistsCommand.java) | 检查一个或多个键是否存在 |
+| `INCR` | 将键的整数值加一 | [IncrCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/IncrCommand.java) | 原子递增操作 |
+| `DECR` | 将键的整数值减一 | [DecrCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DecrCommand.java) | 原子递减操作 |
+| `APPEND` | 追加值到键 | [AppendCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/AppendCommand.java) | 字符串追加操作 |
+| `STRLEN` | 获取键值的长度 | [StrlenCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/StrlenCommand.java) | 字符串长度操作 |
+| `HSET` | 设置哈希字段的字符串值 | [HSetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HSetCommand.java) | 哈希字段设置操作 |
+| `HGET` | 获取哈希字段的值 | [HGetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HGetCommand.java) | 哈希字段获取操作 |
+| `SADD` | 向集合添加一个或多个成员 | [SAddCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SAddCommand.java) | 集合成员添加操作 |
+| `INCRBY` | 将键的整数值增加给定数值 | [IncrByCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/IncrByCommand.java) | 原子递增操作 |
+| `DECRBY` | 将键的整数值减少给定数值 | [DecrByCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DecrByCommand.java) | 原子递减操作 |
+| `MGET` | 获取所有给定键的值 | [MGetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/MGetCommand.java) | 获取多个键值 |
+| `MSET` | 设置多个键值对 | [MSetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/MSetCommand.java) | 设置多个键值对 |
+| `EXPIRE` | 为给定 key 设置过期时间 | [ExpireCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ExpireCommand.java) | 支持 NX, XX, GT, LT 选项 |
+| `TTL` | 获取键的剩余过期时间 | [TtlCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/TtlCommand.java) | 以秒为单位返回键的剩余生存时间 |
+| `TYPE` | 获取键值的类型 | [TypeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/TypeCommand.java) | 返回键值的类型 |
+| `LPUSH` | 在列表头部插入元素 | [LPushCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/LPushCommand.java) | 在列表头部插入一个或多个元素 |
+| `RPUSH` | 在列表尾部插入元素 | [RPushCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/RPushCommand.java) | 在列表尾部插入一个或多个元素 |
+| `LPOP` | 移除并返回列表头部元素 | [LPopCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/LPopCommand.java) | 移除并返回列表的第一个元素 |
+| `RPOP` | 移除并返回列表尾部元素 | [RPopCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/RPopCommand.java) | 移除并返回列表的最后一个元素 |
+| `ZREM` | 从有序集合中移除成员 | [ZRemCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRemCommand.java) | 从有序集合中移除一个或多个成员 |
+| `ZRANGE` | 返回有序集合的成员范围 | [ZRangeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRangeCommand.java) | 返回有序集合指定索引范围的成员 |
+| `ZSCORE` | 获取有序集合成员的分数 | [ZScoreCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZScoreCommand.java) | 获取有序集合中指定成员的分数 |
+
+### 🚧 进行中/计划中的命令
+
+我们正在积极扩展 Redis 命令支持。未来版本将包括更多命令。
+
+### 🛠 自定义命令扩展
+
+Redisun 提供了强大的扩展机制。您可以通过继承 [Command](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java) 基类轻松实现自定义 Redis 命令。这使得添加库中尚未内置的任何 Redis 命令支持变得简单。
+
+有关使用自定义命令扩展 Redisun 的详细信息，请参阅我们的[扩展指南](https://smartboot.tech/redisun/guides/cmd_expand/)。

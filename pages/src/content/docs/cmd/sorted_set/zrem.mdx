@@ -1,0 +1,87 @@
+---
+title: ZREM
+description: Redis ZREM 命令用于移除有序集合中的一个或多个成员。
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+ZREM 命令用于移除有序集合中的一个或多个指定成员。不存在的成员会被忽略。
+
+如果键不存在，则将其视为空的有序集合，并返回 0。
+
+ZREM 命令的时间复杂度为 O(M*log(N))，其中 N 是有序集合中的元素数量，M 是要移除的成员数量。
+
+### Redis 原生命令语法
+
+<Code code={`ZREM key member [member ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 有序集合的键
+- **member**: 要移除的一个或多个成员
+
+### 详细说明
+
+ZREM 命令从有序集合中移除指定的成员。如果指定的成员不存在于有序集合中，则会被忽略。如果有序集合不存在，会被视为空的有序集合处理。
+
+#### 返回值
+
+命令返回被成功移除的成员数量，不包括不存在的成员。
+
+#### 示例
+
+<Code code={`redis> ZADD myzset 1 "one" 2 "two" 3 "three"
+(integer) 3
+redis> ZREM myzset "two"
+(integer) 1
+redis> ZRANGE myzset 0 -1 WITHSCORES
+1) "one"
+2) "1"
+3) "three"
+4) "3"
+redis> ZREM myzset "four"
+(integer) 0`} lang="bash" />
+
+## Redisun 使用方式
+
+在 redisun 中，ZREM 命令通过 [ZRemCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRemCommand.java) 类和 Redisun 类中的 `zrem` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 添加一些测试数据
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.0, "two");
+redisun.zadd("myzset", 3.0, "three");
+
+// 移除单个成员
+long removedCount = redisun.zrem("myzset", "two");
+
+// 移除多个成员
+long removedCount2 = redisun.zrem("myzset", "one", "three");`} lang="java" />
+
+### 异步用法
+
+<Code code={`// 异步移除成员
+CompletableFuture<Long> future = redisun.asyncZrem("myzset", "two");
+
+// 处理异步结果
+future.thenAccept(removedCount -> {
+    System.out.println("Removed " + removedCount + " members");
+});`} lang="java" />
+
+## 注意事项
+
+1. 不存在的成员会被忽略，不会产生错误
+2. 如果键不存在，会被视为空的有序集合处理
+3. 命令返回被成功移除的成员数量
+
+## 参考资料
+
+- [Redis ZREM 命令官方文档](https://redis.io/docs/latest/commands/zrem/)

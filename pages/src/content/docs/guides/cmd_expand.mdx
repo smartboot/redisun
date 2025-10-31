@@ -1,0 +1,878 @@
+---
+title: Command开发指南
+description: Redisun 是一个基于 smart-socket 开发的轻量级高性能 Redis 客户端，专为 Java 平台设计。
+sidebar:
+  order: 2
+---
+
+# Redis命令扩展开发指南 🚀
+
+欢迎来到 Redisun 社区！本指南将帮助你了解如何为 Redisun 客户端贡献新的 Redis 命令实现。Redisun 是一个轻量级、高性能的 Redis 客户端，专为 Java 平台设计。我们热忱欢迎社区开发者参与贡献，一起完善 Redisun 的命令支持。
+
+## 项目架构概览 🏗️
+
+在开始开发之前，让我们先了解一下 Redisun 的核心架构：
+
+```
+src/main/java/tech/smartboot/redisun/
+├── Command.java              # 命令抽象基类
+├── Redisun.java              # 客户端主类
+├── RedisunOptions.java       # 客户端配置选项
+├── cmd/                      # 具体命令实现目录
+│   ├── SetCommand.java       # SET 命令实现
+│   ├── GetCommand.java       # GET 命令实现
+│   ├── DelCommand.java       # DEL 命令实现
+│   ├── IncrCommand.java      # INCR 命令实现
+│   ├── DecrCommand.java      # DECR 命令实现
+│   ├── StrlenCommand.java    # STRLEN 命令实现
+│   ├── AppendCommand.java    # APPEND 命令实现
+│   ├── HSetCommand.java      # HSET 命令实现
+│   ├── HGetCommand.java      # HGET 命令实现
+│   ├── SAddCommand.java      # SADD 命令实现
+│   ├── ZAddCommand.java      # ZADD 命令实现
+│   ├── ZRemCommand.java      # ZREM 命令实现
+│   ├── ZRangeCommand.java    # ZRANGE 命令实现
+│   ├── ZScoreCommand.java    # ZSCORE 命令实现
+│   ├── ExistsCommand.java    # EXISTS 命令实现
+│   ├── DBSizeCommand.java    # DBSIZE 命令实现
+│   ├── FlushAllCommand.java  # FLUSHALL 命令实现
+│   ├── FlushDbCommand.java   # FLUSHDB 命令实现
+│   ├── SelectCommand.java    # SELECT 命令实现
+│   └── ...                   # 其他命令实现
+└── resp/                     # RESP 协议解析模块
+    ├── RESP.java             # RESP 协议基类
+    ├── BulkStrings.java      # 批量字符串类型
+    ├── SimpleStrings.java    # 简单字符串类型
+    └── ...                   # 其他 RESP 类型
+```
+
+## 命令实现基础 🎯
+
+### Command 抽象基类
+
+所有 Redis 命令实现都必须继承 [Command](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java) 抽象基类。该类定义了命令构建的通用接口：
+
+```java
+public abstract class Command {
+    protected abstract List<BulkStrings> buildParams();
+}
+```
+
+每个具体的命令实现类都需要实现 [buildParams()](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java#L29) 方法，用于构建符合 Redis 协议规范的命令参数列表。
+
+### 示例：SET 命令实现
+
+让我们以 [SetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) 为例，了解如何实现一个 Redis 命令：
+
+```java
+public class SetCommand extends Command {
+    private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+    private final String key;
+    private final String value;
+    
+    public SetCommand(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        // 添加命令名称
+        param.add(CONSTANTS_SET);
+        // 添加键
+        param.add(RESP.ofString(key));
+        // 添加值
+        param.add(RESP.ofString(value));
+        return param;
+    }
+}
+```
+
+## 开发新命令的步骤 🛠️
+
+### 1. 创建命令类
+
+在 [cmd](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd) 目录下创建新的命令类，例如实现 `INCR` 命令：
+
+```java
+package tech.smartboot.redisun.cmd;
+
+import tech.smartboot.redisun.Command;
+import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Redis INCRBY 命令实现类
+ * <p>
+ * 将 key 所储存的值加上给定的增量值（increment）。
+ * 如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 INCRBY 操作。
+ * 如果值包含错误的类型，或字符串类型的值不能表示为数字，那么返回一个错误。
+ * 本操作的值限制在 64 位(bit)有符号数字表示之内。
+ * </p>
+ * 
+ * @see <a href="https://redis.io/commands/incrby/">Redis INCRBY Command</a>
+ */
+public class IncrByCommand extends Command {
+    private static final BulkStrings CONSTANTS_INCRBY = BulkStrings.of("INCRBY");
+    private final String key;
+    private final long increment;
+
+    public IncrByCommand(String key, long increment) {
+        this.key = key;
+        this.increment = increment;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_INCRBY);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(String.valueOf(increment)));
+        return param;
+    }
+}
+```
+
+```java
+package tech.smartboot.redisun.cmd;
+
+import tech.smartboot.redisun.Command;
+import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Redis INCR 命令实现类
+ * <p>
+ * 将 key 中储存的数字值增一。
+ * 如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 INCR 操作。
+ * </p>
+ * 
+ * @see <a href="https://redis.io/commands/incr/">Redis INCR Command</a>
+ */
+public class IncrCommand extends Command {
+    private static final BulkStrings CONSTANTS_INCR = BulkStrings.of("INCR");
+    private final String key;
+
+    public IncrCommand(String key) {
+        this.key = key;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_INCR);
+        param.add(RESP.ofString(key));
+        return param;
+    }
+}
+```
+
+### 2. 在客户端中添加方法
+
+在 [Redisun.java](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java) 中添加对应的方法：
+
+```java
+/**
+ * 将 key 所储存的值加上给定的增量值（increment）
+ *
+ * @param key       要增加的键
+ * @param increment 增量值
+ * @return 执行命令后 key 的值
+ */
+public long incrBy(String key, long increment) {
+    RESP r = syncExecute(new IncrByCommand(key, increment));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+对于一些常用的核心指令，还需要同时提供异步接口以满足高并发场景的需求：
+
+```
+/**
+ * 将 key 所储存的值加上给定的增量值（increment）（异步版本）
+ *
+ * @param key       要增加的键
+ * @param increment 增量值
+ * @return 执行命令后 key 的值
+ */
+public CompletableFuture<Long> asyncIncrBy(String key, long increment) {
+    return execute(new IncrByCommand(key, increment)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+### 列表命令客户端方法示例
+
+列表命令通常需要处理不同的返回类型。例如，插入命令返回列表长度（整数），而弹出命令返回元素值（字符串）或null：
+
+```java
+/**
+ * 将一个或多个值插入到列表的头部(左边)
+ *
+ * @param key    列表的键
+ * @param values 要插入的一个或多个值
+ * @return 执行后列表的长度
+ */
+public long lpush(String key, String... values) {
+    RESP r = syncExecute(new LPushCommand(key, values));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+```java
+/**
+ * 移除并返回列表的头部(左边)第一个元素
+ *
+ * @param key 列表的键
+ * @return 列表的头部元素，如果列表为空则返回null
+ */
+public String lpop(String key) {
+    RESP r = syncExecute(new LPopCommand(key));
+    if (r instanceof Nulls) {
+        return null;
+    } else if (r instanceof BulkStrings) {
+        return ((BulkStrings) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+对于一些常用的核心指令，还需要同时提供异步接口以满足高并发场景的需求：
+
+```java
+/**
+ * 将一个或多个值插入到列表的头部(左边)（异步版本）
+ *
+ * @param key    列表的键
+ * @param values 要插入的一个或多个值
+ * @return 执行后列表的长度
+ */
+public CompletableFuture<Long> asyncLpush(String key, String... values) {
+    return execute(new LPushCommand(key, values)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue().longValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+```java
+/**
+ * 移除并返回列表的头部(左边)第一个元素（异步版本）
+ *
+ * @param key 列表的键
+ * @return 列表的头部元素，如果列表为空则返回null
+ */
+public CompletableFuture<String> asyncLpop(String key) {
+    return execute(new LPopCommand(key)).thenApply(resp -> {
+        if (resp instanceof Nulls) {
+            return null;
+        } else if (resp instanceof BulkStrings) {
+            return ((BulkStrings) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+```java
+/**
+ * 将 key 中储存的数字值增一
+ *
+ * @param key 要增加的键
+ * @return 执行命令后 key 的值
+ */
+public long incr(String key) {
+    RESP r = syncExecute(new IncrCommand(key));
+    if (r instanceof Integers) {
+        return ((Integers) r).getValue();
+    }
+    throw new RedisunException("invalid response:" + r);
+}
+```
+
+对于一些常用的核心指令，还需要同时提供异步接口以满足高并发场景的需求：
+
+```
+/**
+ * 将 key 中储存的数字值增一（异步版本）
+ *
+ * @param key 要增加的键
+ * @return 执行命令后 key 的值
+ */
+public CompletableFuture<Long> asyncIncr(String key) {
+    return execute(new IncrCommand(key)).thenApply(resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    });
+}
+```
+
+同步和异步接口的设计原则：
+
+1. 同步方法名遵循 `command` 格式，如 [set](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L121-L124)、[get](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L96-L104)、[del](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L172-L174)
+2. 异步方法名遵循 `asyncCommand` 格式，如 [asyncSet](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L142-L144)、[asyncGet](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L-L)、[asyncDel](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L-L)
+3. 同步方法内部通过调用 [syncExecute](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L187-L197) 方法执行命令并阻塞等待结果
+4. 异步方法通过调用 [execute](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L205-L239) 方法返回 [CompletableFuture](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Redisun.java#L23-L23) 对象，允许非阻塞操作
+
+### 3. 编写测试用例
+
+在测试文件中添加新命令的测试用例：
+
+```java
+@Test
+public void testIncr() {
+    String key = "test_incr_key";
+    // 先删除可能存在的键
+    redisun.del(key);
+    // 首次调用应该返回1
+    Assert.assertEquals(1, redisun.incr(key));
+    // 再次调用应该返回2
+    Assert.assertEquals(2, redisun.incr(key));
+    // 验证GET命令能正确获取值
+    Assert.assertEquals("2", redisun.get(key));
+}
+```
+
+## 命令实现最佳实践 ✅
+
+### 1. 常量优化
+
+对于命令中使用的固定字符串，建议定义为静态常量以提高性能：
+
+```java
+private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+private static final BulkStrings CONSTANTS_NX = BulkStrings.of("NX");
+```
+
+### 2. 参数处理
+
+使用 RESP 工具类处理参数转换：
+
+```java
+param.add(RESP.ofString(key));
+param.add(RESP.ofString(value));
+```
+
+### 3. 响应处理
+
+根据 Redis 命令的响应类型进行适当处理：
+
+```java
+// 处理整数响应
+if (r instanceof Integers) {
+    return ((Integers) r).getValue();
+}
+
+// 处理字符串响应
+if (r instanceof SimpleStrings) {
+    return SimpleStrings.OK.equals(((SimpleStrings) r).getValue());
+}
+
+// 处理空值响应
+if (r instanceof Nulls) {
+    return null;
+}
+```
+
+## 复杂命令示例 💡
+
+让我们看一个更复杂的命令示例 - [SetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java)，它支持多种选项：
+
+```java
+public class SetCommand extends Command {
+    // 常量定义
+    private static final BulkStrings CONSTANTS_SET = BulkStrings.of("SET");
+    private static final BulkStrings CONSTANTS_NX = BulkStrings.of("NX");
+    private static final BulkStrings CONSTANTS_XX = BulkStrings.of("XX");
+    
+    private final String key;
+    private final String value;
+    private BulkStrings exists; // NX/XX 选项
+    
+    // 过期时间选项处理器
+    private Consumer<List<BulkStrings>> expire;
+    
+    public SetCommand(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+    
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_SET);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(value));
+        
+        // 添加 NX/XX 选项
+        if (exists != null) {
+            param.add(exists);
+        }
+        
+        // 添加过期时间选项
+        if (expire != null) {
+            expire.accept(param);
+        }
+        return param;
+    }
+    
+    // 设置 NX 选项
+    public SetCommand setIfNotExists() {
+        exists = CONSTANTS_NX;
+        return this;
+    }
+    
+    // 设置 XX 选项
+    public SetCommand setIfExists() {
+        exists = CONSTANTS_XX;
+        return this;
+    }
+}
+```
+
+### 列表命令示例
+
+列表命令通常用于处理Redis中的列表数据结构。以下是一些列表命令的实现示例：
+
+```java
+public class LPushCommand extends Command {
+    private static final BulkStrings CONSTANTS_LPUSH = BulkStrings.of("LPUSH");
+    private final String key;
+    private final String[] values;
+
+    public LPushCommand(String key, String... values) {
+        this.key = key;
+        this.values = values;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_LPUSH);
+        param.add(RESP.ofString(key));
+        for (String value : values) {
+            param.add(RESP.ofString(value));
+        }
+        return param;
+    }
+}
+```
+
+```java
+public class LPopCommand extends Command {
+    private static final BulkStrings CONSTANTS_LPOP = BulkStrings.of("LPOP");
+    private final String key;
+
+    public LPopCommand(String key) {
+        this.key = key;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>();
+        param.add(CONSTANTS_LPOP);
+        param.add(RESP.ofString(key));
+        return param;
+    }
+}
+```
+
+### 有序集合命令示例
+
+有序集合命令用于处理Redis中的有序集合数据结构。以下是一些有序集合命令的实现示例：
+
+```java
+public class ZRemCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZREM = BulkStrings.of("ZREM");
+    private final String key;
+    private final String[] members;
+
+    public ZRemCommand(String key, String... members) {
+        this.key = key;
+        this.members = members;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(2 + members.length);
+        param.add(CONSTANTS_ZREM);
+        param.add(RESP.ofString(key));
+        for (String member : members) {
+            param.add(RESP.ofString(member));
+        }
+        return param;
+    }
+}
+```
+
+```java
+public class ZRangeCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZRANGE = BulkStrings.of("ZRANGE");
+    private static final BulkStrings CONSTANTS_BYSCORE = BulkStrings.of("BYSCORE");
+    private static final BulkStrings CONSTANTS_BYLEX = BulkStrings.of("BYLEX");
+    private static final BulkStrings CONSTANTS_REV = BulkStrings.of("REV");
+    private static final BulkStrings CONSTANTS_WITHSCORES = BulkStrings.of("WITHSCORES");
+    private static final BulkStrings CONSTANTS_LIMIT = BulkStrings.of("LIMIT");
+    
+    private final String key;
+    private final String start;
+    private final String stop;
+    
+    // 四个选项参数
+    private boolean byScore = false;
+    private boolean byLex = false;
+    private boolean rev = false;
+    private boolean withScores = false;
+    
+    // LIMIT参数
+    private boolean hasLimit = false;
+    private long limitOffset;
+    private long limitCount;
+
+    public ZRangeCommand(String key, String start, String stop) {
+        this.key = key;
+        this.start = start;
+        this.stop = stop;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(10);
+        param.add(CONSTANTS_ZRANGE);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(start));
+        param.add(RESP.ofString(stop));
+        
+        // 添加选项参数
+        if (byScore) {
+            param.add(CONSTANTS_BYSCORE);
+        }
+        
+        if (byLex) {
+            param.add(CONSTANTS_BYLEX);
+        }
+        
+        if (rev) {
+            param.add(CONSTANTS_REV);
+        }
+        
+        // 添加LIMIT参数
+        if (hasLimit) {
+            param.add(CONSTANTS_LIMIT);
+            param.add(RESP.ofString(String.valueOf(limitOffset)));
+            param.add(RESP.ofString(String.valueOf(limitCount)));
+        }
+        
+        if (withScores) {
+            param.add(CONSTANTS_WITHSCORES);
+        }
+        
+        return param;
+    }
+    
+    /**
+     * 设置 BYSCORE 选项：按分数查询
+     * 
+     * @return 当前 ZRangeCommand 实例，支持链式调用
+     */
+    public ZRangeCommand byScore() {
+        this.byScore = true;
+        return this;
+    }
+    
+    /**
+     * 设置 BYLEX 选项：按字典序查询
+     * 
+     * @return 当前 ZRangeCommand 实例，支持链式调用
+     */
+    public ZRangeCommand byLex() {
+        this.byLex = true;
+        return this;
+    }
+    
+    /**
+     * 设置 REV 选项：倒序排列
+     * 
+     * @return 当前 ZRangeCommand 实例，支持链式调用
+     */
+    public ZRangeCommand rev() {
+        this.rev = true;
+        return this;
+    }
+    
+    /**
+     * 设置 WITHSCORES 选项：同时返回成员的分数
+     * 
+     * @return 当前 ZRangeCommand 实例，支持链式调用
+     */
+    public ZRangeCommand withScores() {
+        this.withScores = true;
+        return this;
+    }
+    
+    /**
+     * 设置 LIMIT 选项：限制返回结果数量
+     * 
+     * @param offset 跳过的元素数量
+     * @param count  返回的元素数量
+     * @return 当前 ZRangeCommand 实例，支持链式调用
+     */
+    public ZRangeCommand limit(long offset, long count) {
+        this.hasLimit = true;
+        this.limitOffset = offset;
+        this.limitCount = count;
+        return this;
+    }
+}
+```
+
+```java
+public class ZScoreCommand extends Command {
+    private static final BulkStrings CONSTANTS_ZSCORE = BulkStrings.of("ZSCORE");
+    private final String key;
+    private final String member;
+
+    public ZScoreCommand(String key, String member) {
+        this.key = key;
+        this.member = member;
+    }
+
+    @Override
+    protected List<BulkStrings> buildParams() {
+        List<BulkStrings> param = new ArrayList<>(3);
+        param.add(CONSTANTS_ZSCORE);
+        param.add(RESP.ofString(key));
+        param.add(RESP.ofString(member));
+        return param;
+    }
+}
+```
+
+## 性能基准测试用例开发 📊
+
+为了评估重要命令的性能表现，我们需要为其编写对应的基准测试用例。需要注意的是，并非所有命令都需要基准测试，通常只对核心或高频使用的命令进行基准测试以评估其性能表现。
+
+### 基准测试框架介绍
+
+Redisun 使用 JUnit 编写基准测试用例，主要测试同步和异步两种操作模式的性能表现。基准测试位于 [bench](https://gitee.com/smartboot/redisun/tree/master/src/test/java/tech/smartboot/redisun/bench) 包中：
+
+```
+src/test/java/tech/smartboot/redisun/bench/
+├── Bench.java              # 基准测试配置类
+├── RedisunBenchmark.java   # Redisun 基准测试类
+└── RedissonBenchmark.java  # Redisson 对照组基准测试类
+```
+
+### 添加新命令的基准测试
+
+当你为 Redisun 实现了一个重要命令后，需要在 [RedisunBenchmark.java](https://gitee.com/smartboot/redisun/blob/master/src/test/java/tech/smartboot/redisun/bench/RedisunBenchmark.java) 中添加相应的基准测试方法。如前所述，只对核心或高频使用的命令添加基准测试。
+
+以我们前面实现的 `INCR` 命令为例，可以添加如下基准测试方法：
+
+```java
+@Test
+public void incr() {
+    String key = "bench_incr_key";
+    // 初始化键值
+    redisun.set(key, "0");
+    
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < SET_COUNT; i++) {
+        redisun.incr(key);
+    }
+    System.out.println("redisun incr cost " + (System.currentTimeMillis() - start) + "ms");
+}
+
+@Test
+public void incrConcurrent() throws InterruptedException {
+    String key = "bench_incr_concurrent_key";
+    // 初始化键值
+    redisun.set(key, "0");
+    
+    CountDownLatch latch = new CountDownLatch(SET_COUNT);
+    long start = System.currentTimeMillis();
+    
+    for (int i = 0; i < CONCURRENT_CLIENT_COUNT; i++) {
+        Thread thread = new Thread(() -> {
+            int j = 0;
+            while (latch.getCount() > 0) {
+                redisun.incr(key);
+                j++;
+                latch.countDown();
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
+    
+    latch.await();
+    System.out.println("redisun concurrent incr cost " + (System.currentTimeMillis() - start) + "ms");
+}
+```
+
+以列表命令为例，可以添加如下基准测试方法：
+
+```java
+@Test
+public void lpush() {
+    String key = "bench_lpush_key";
+    // 先删除可能存在的键
+    redisun.del(key);
+    
+    long start = System.currentTimeMillis();
+    for (int i = 0; i < SET_COUNT; i++) {
+        redisun.lpush(key, "value" + i);
+    }
+    System.out.println("redisun lpush cost " + (System.currentTimeMillis() - start) + "ms");
+}
+
+@Test
+public void lpushConcurrent() throws InterruptedException {
+    String key = "bench_lpush_concurrent_key";
+    // 先删除可能存在的键
+    redisun.del(key);
+    
+    CountDownLatch latch = new CountDownLatch(SET_COUNT);
+    long start = System.currentTimeMillis();
+    
+    for (int i = 0; i < CONCURRENT_CLIENT_COUNT; i++) {
+        Thread thread = new Thread(() -> {
+            int j = 0;
+            while (latch.getCount() > 0) {
+                redisun.lpush(key, "value" + j);
+                j++;
+                latch.countDown();
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
+    
+    latch.await();
+    System.out.println("redisun concurrent lpush cost " + (System.currentTimeMillis() - start) + "ms");
+}
+```
+
+### 基准测试最佳实践 ✅
+
+1. **测试环境一致性**
+   - 确保所有测试都在相同的硬件和网络环境下运行
+   - 每次测试前清理 Redis 数据库，避免历史数据影响测试结果
+
+2. **测试覆盖全面**
+   - 同步操作性能测试
+   - 异步操作性能测试
+   - 并发场景性能测试
+
+3. **结果记录与对比**
+   - 记录执行时间作为性能指标
+   - 与其他客户端（如 Redisson）进行对比测试
+   - 在不同负载条件下测试性能表现
+
+## 贡献流程 🤝
+
+我们欢迎任何形式的贡献！请按照以下流程参与贡献：
+
+1. **Fork 项目** - 在 Gitee 或 GitHub 上 Fork Redisun 项目
+2. **创建分支** - 为你的功能创建一个新的分支
+3. **实现命令** - 按照本指南实现新的 Redis 命令
+4. **编写测试** - 为新命令编写完整的测试用例
+5. **添加基准测试** - 为重要的新命令添加性能基准测试（非必需项）
+6. **编写文档** - 在 cmd 目录下为新命令编写相应的文档
+7. **提交代码** - 提交你的代码并推送至你的仓库
+8. **发起 PR** - 创建 Pull Request，描述你的实现内容
+
+
+## 文档编写规范 📝
+
+当你实现一个新的 Redis 命令后，需要为其编写相应的文档。
+文档位于 [/pages/src/content/docs/cmd](https://gitee.com/smartboot/redisun/blob/master/pages/src/content/docs/cmd) 目录下，每个命令都有一个对应的 .mdx 文件。
+
+请遵循以下文档编写规范：
+
+### 文档结构
+
+每个命令文档应包含以下部分：
+
+1. **文件头部** - 包含title和description等元数据
+2. **命令简介** - 简要介绍该命令的作用
+3. **Redis原生命令语法** - 展示Redis原生的命令语法
+4. **参数说明** - 详细说明每个参数的含义
+5. **详细说明** - 对命令的详细解释和使用场景
+6. **Redisun使用方式** - 展示如何在Redisun中使用该命令
+7. **注意事项** - 使用该命令时需要注意的事项
+8. **参考资料** - 指向Redis官方文档的链接
+
+### 详细规范
+
+#### 1. 文件头部
+```
+---
+title: 命令名称
+description: 简要描述该命令的功能
+sidebar:
+  order: 数字（按字母顺序排列）
+---
+```
+
+#### 2. 命令简介
+在文件头部之后，应简要介绍该命令的作用，无需一级标题。
+
+#### 3. Redis原生命令语法
+使用三级标题"### Redis原生命令语法"，并使用Code组件展示语法：
+```
+### Redis原生命令语法
+
+<Code code={`命令语法`} lang="bash" />
+```
+
+#### 4. 参数说明
+使用加粗格式列出参数说明，无需标题：
+```
+**参数说明**
+
+- **参数名**: 参数说明
+```
+
+#### 5. 详细说明
+使用三级标题"### 详细说明"，可以包含子级标题来组织内容。
+
+#### 6. Redisun使用方式
+使用二级标题"## Redisun使用方式"，展示如何在Redisun中使用该命令，并提供代码示例。
+
+#### 7. 注意事项
+列出使用该命令时需要注意的事项。
+
+#### 8. 参考资料
+提供指向Redis官方文档的链接。
+
+## 社区支持 💬
+
+如果你在开发过程中遇到任何问题：
+
+- 查看 [Redis 官方文档](https://redis.io/commands/) 了解命令规范
+- 在项目 Issues 中提问
+- 联系项目维护者获取帮助
+
+让我们一起构建更好的 Redisun！✨

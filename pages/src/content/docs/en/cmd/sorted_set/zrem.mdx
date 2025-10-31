@@ -1,0 +1,87 @@
+---
+title: ZREM
+description: The Redis ZREM command is used to remove one or more members from a sorted set.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The ZREM command is used to remove one or more specified members from a sorted set. Non-existent members are ignored.
+
+If the key does not exist, it is treated as an empty sorted set and 0 is returned.
+
+The time complexity of the ZREM command is O(M*log(N)), where N is the number of elements in the sorted set and M is the number of members to be removed.
+
+### Redis Native Command Syntax
+
+<Code code={`ZREM key member [member ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the sorted set
+- **member**: One or more members to remove
+
+### Detailed Explanation
+
+The ZREM command removes specified members from a sorted set. If the specified members do not exist in the sorted set, they are ignored. If the sorted set does not exist, it is treated as an empty sorted set.
+
+#### Return Value
+
+The command returns the number of members successfully removed, excluding non-existent members.
+
+#### Example
+
+<Code code={`redis> ZADD myzset 1 "one" 2 "two" 3 "three"
+(integer) 3
+redis> ZREM myzset "two"
+(integer) 1
+redis> ZRANGE myzset 0 -1 WITHSCORES
+1) "one"
+2) "1"
+3) "three"
+4) "3"
+redis> ZREM myzset "four"
+(integer) 0`} lang="bash" />
+
+## Redisun Usage
+
+In redisun, the ZREM command is implemented through the [ZRemCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRemCommand.java) class and the `zrem` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Add some test data
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.0, "two");
+redisun.zadd("myzset", 3.0, "three");
+
+// Remove a single member
+long removedCount = redisun.zrem("myzset", "two");
+
+// Remove multiple members
+long removedCount2 = redisun.zrem("myzset", "one", "three");`} lang="java" />
+
+### Asynchronous Usage
+
+<Code code={`// Asynchronously remove members
+CompletableFuture<Long> future = redisun.asyncZrem("myzset", "two");
+
+// Handle asynchronous result
+future.thenAccept(removedCount -> {
+    System.out.println("Removed " + removedCount + " members");
+});`} lang="java" />
+
+## Notes
+
+1. Non-existent members are ignored and no error is generated
+2. If the key does not exist, it is treated as an empty sorted set
+3. The command returns the number of members successfully removed
+
+## References
+
+- [Redis ZREM Command Official Documentation](https://redis.io/docs/latest/commands/zrem/)

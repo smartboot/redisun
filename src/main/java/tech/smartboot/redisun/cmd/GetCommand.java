@@ -1,9 +1,11 @@
 package tech.smartboot.redisun.cmd;
 
+import org.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.Command;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.RESP;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,10 +15,11 @@ import java.util.List;
  */
 public class GetCommand extends Command {
     private static final BulkStrings CMD_GET = BulkStrings.of("GET");
-    private final String key;
+    private final byte[] key;
+    private static final byte[] HEADER = new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '2', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'G', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK};
 
     public GetCommand(String key) {
-        this.key = key;
+        this.key = key.getBytes();
     }
 
     @Override
@@ -25,5 +28,14 @@ public class GetCommand extends Command {
         param.add(CMD_GET);
         param.add(RESP.ofString(key));
         return param;
+    }
+
+    @Override
+    public void writeTo(WriteBuffer writeBuffer) throws IOException {
+        writeBuffer.write(HEADER);
+        RESP.writeInt(writeBuffer, key.length);
+        writeBuffer.write(key);
+        writeBuffer.write(RESP.CRLF);
+//        super.writeTo(writeBuffer);
     }
 }

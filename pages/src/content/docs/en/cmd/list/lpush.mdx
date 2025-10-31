@@ -1,0 +1,57 @@
+---
+title: LPUSH
+description: The Redis LPUSH command is used to insert one or more values at the head of a list.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Insert one or more values at the head (left side) of the list. If the key does not exist, an empty list will be created and the LPUSH operation will be performed. When the key exists but is not of list type, an error is returned.
+
+### Redis Native Command Syntax
+
+<Code code={`LPUSH key element [element ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the list
+- **element**: One or more elements to insert at the head of the list
+
+### Detailed Explanation
+
+The LPUSH command is one of the list operation commands. It inserts the specified elements at the head of the list. If there are multiple elements, they will be inserted at the head of the list in left-to-right order, which means the last element will become the first element of the list.
+
+## Redisun Usage
+
+In redisun, the LPUSH command is implemented through the LPushCommand class and the lpush method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Insert a single element at the head of the list
+long result = redisun.lpush("mylist", "value1");
+System.out.println("List length after LPUSH: " + result);
+
+// Insert multiple elements at the head of the list
+long result2 = redisun.lpush("mylist", "value2", "value3");
+System.out.println("List length after LPUSH multiple values: " + result2);
+
+// Asynchronous version
+CompletableFuture<Long> future = redisun.asyncLpush("mylist", "value4");
+future.thenAccept(length -> System.out.println("Async LPUSH result: " + length));`} lang="java" />
+
+## Notes
+
+1. If the key does not exist, an empty list will be automatically created and then the LPUSH operation will be performed
+2. If the key exists but is not of list type, an exception will be thrown
+3. When inserting multiple elements, they will be inserted at the head of the list in parameter order from left to right
+4. The command returns the length of the list after the operation
+5. The operation is atomic
+
+## References
+
+- [Redis LPUSH Command Official Documentation](https://redis.io/commands/lpush/)

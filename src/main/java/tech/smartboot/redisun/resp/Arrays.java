@@ -82,7 +82,6 @@ public final class Arrays extends RESP<List<RESP>> {
                         value = new ArrayList<>(count);
                         state = DECODE_STATE_ITEM;
                     } else {
-                        // 负数元素个数是非法的
                         return false;
                     }
                     break;
@@ -90,7 +89,7 @@ public final class Arrays extends RESP<List<RESP>> {
                     // 解析数组元素
                     if (item == null) {
                         // 创建新的元素对象
-                        item = RESP.newInstance(readBuffer.get());
+                        item = RESP.newInstance(readBuffer);
                     } else if (item.decode(readBuffer)) {
                         // 元素解析完成，添加到数组中
                         value.add(item);
@@ -101,6 +100,8 @@ public final class Arrays extends RESP<List<RESP>> {
                             state = DECODE_STATE_END;
                             return true;
                         }
+                    } else {
+                        return false;
                     }
                     break;
                 default:
@@ -122,8 +123,6 @@ public final class Arrays extends RESP<List<RESP>> {
         writeBuffer.write(RESP_DATA_TYPE_ARRAY);
         // 写入数组元素个数
         writeInt(writeBuffer, value.size());
-        // 写入行终止符
-        writeBuffer.write(CRLF);
         // 逐个写入数组元素
         for (RESP item : value) {
             item.writeTo(writeBuffer);

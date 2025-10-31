@@ -1,0 +1,70 @@
+---
+title: HELLO
+description: Redis HELLO 命令用于在 Redis 服务器和客户端之间进行握手，协商 RESP 协议版本并进行身份验证。
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+HELLO 命令用于在 Redis 服务器和客户端之间进行握手。它还允许客户端协商使用的 RESP 协议版本，并进行身份验证。
+
+### Redis 原生命令语法
+
+<Code code={`HELLO [protover [AUTH username password] [SETNAME clientname]]`} lang="bash" />
+
+**参数说明**
+
+- **protover**: 要协商的 RESP 协议版本（2 或 3）
+- **AUTH username password**: 可选的身份验证信息
+- **SETNAME clientname**: 设置客户端名称
+
+### 详细说明
+
+HELLO 命令是 Redis 6.0 引入的现代化握手命令，用于替代旧的 AUTH 和 SELECT 命令组合。它提供了一种标准化的方式来：
+
+1. 协商客户端和服务器之间使用的 RESP（Redis 序列化协议）版本
+2. 进行身份验证
+3. 设置客户端名称
+
+#### RESP 协议版本
+
+Redis 支持两种 RESP 协议版本：
+- RESP2：Redis 2.0 引入的协议版本
+- RESP3：Redis 6.0 引入的协议版本，提供了更丰富的数据类型支持
+
+#### 身份验证
+
+HELLO 命令可以直接在握手过程中进行身份验证，避免了单独发送 AUTH 命令。
+
+#### 设置客户端名称
+
+可以使用 SETNAME 选项为客户端连接设置一个名称，便于服务器端管理和监控。
+
+## Redisun 使用方式
+
+在 redisun 中，HELLO 命令通过 [HelloCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HelloCommand.java) 类实现，但通常不需要直接调用，因为客户端会在连接建立时自动执行 HELLO 命令。
+
+### 直接使用 HelloCommand
+
+<Code code={`Redisun redisun = new Redisun(); // 使用默认配置
+// HELLO 命令会自动执行，无需手动调用`} lang="java" />
+
+### 使用身份验证
+
+身份验证信息通过 RedisunOptions 配置：
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setUsername("myuser");
+    options.setPassword("mypassword");
+});`} lang="java" />
+
+## 注意事项
+
+1. HELLO 命令在 Redis 6.0 及以上版本中可用
+2. 客户端通常在连接建立时自动执行 HELLO 命令
+3. 通过 HELLO 命令进行身份验证比单独使用 AUTH 命令更高效
+
+## 参考资料
+
+- [Redis HELLO 命令官方文档](https://redis.io/docs/latest/commands/hello/)

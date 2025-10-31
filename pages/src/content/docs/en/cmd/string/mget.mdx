@@ -1,0 +1,61 @@
+---
+title: MGET
+description: The Redis MGET command is used to get the values of multiple keys.
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Return the values of all (one or more) given keys.
+
+If some keys do not exist among the given keys, those keys return the special value nil. Therefore, this command never fails.
+
+### Redis Native Command Syntax
+
+<Code code={`MGET key [key ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: One or more keys to get values
+
+### Detailed Explanation
+
+The MGET command is an atomic operation used to get the values of multiple keys simultaneously. Compared to calling the GET command multiple times, MGET can reduce the number of network round trips and improve performance.
+
+## Redisun Usage
+
+In redisun, the MGET command is implemented through the MGetCommand class and the mget method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Prepare key list
+List<String> keys = Arrays.asList("key1", "key2", "key3");
+
+// Get values of multiple keys
+List<String> values = redisun.mget(keys);
+for (int i = 0; i < values.size(); i++) {
+    System.out.println(keys.get(i) + " = " + values.get(i));
+}
+
+// Asynchronous version
+CompletableFuture<List<String>> future = redisun.asyncMget(keys);
+future.thenAccept(result -> {
+    for (int i = 0; i < result.size(); i++) {
+        System.out.println(keys.get(i) + " = " + result.get(i));
+    }
+});`} lang="java" />
+
+## Notes
+
+1. If a key does not exist, the value at the corresponding position in the return list is null
+2. MGET is an atomic operation, either all execute successfully or all fail
+3. Better performance than calling the GET command multiple times, as it reduces network round trips
+
+## References
+
+- [Redis MGET Command Official Documentation](https://redis.io/commands/mget/)

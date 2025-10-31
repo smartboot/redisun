@@ -1,0 +1,63 @@
+---
+title: GET
+description: Redis GET 命令用于获取指定键的值，如果键不存在则返回 nil。
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+GET 命令用于获取指定键的值。如果键不存在，则返回 nil。GET 命令只能处理字符串值，如果存储在键中的值不是字符串，则会返回错误。
+
+GET 命令的时间复杂度为 O(1)，是一个非常快速的操作。
+
+### Redis 原生命令语法
+
+<Code code={`GET key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要获取值的键
+
+### 详细说明
+
+GET 命令是 Redis 中最基本的命令之一，用于检索存储在指定键中的字符串值。它是 SET 命令的对应操作。
+
+当键不存在时，GET 命令返回特殊值 nil。如果键存在但存储的值不是字符串（例如列表、集合等其他数据类型），则会返回错误。
+
+#### 基本用法示例
+
+<Code code={`GET nonexisting
+SET mykey "Hello"
+GET mykey`} lang="bash" />
+
+## Redisun 使用方式
+
+在 redisun 中，GET 命令通过 [GetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/GetCommand.java) 类和 Redisun 类中的 `get` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 获取键值
+String value = redisun.get("mykey");
+
+// 处理可能为 null 的情况
+if (value != null) {
+    System.out.println("Value: " + value);
+} else {
+    System.out.println("Key does not exist");
+}`} lang="java" />
+
+## 注意事项
+
+1. GET 命令只能用于获取字符串类型的值
+2. 对于非字符串类型的键，会返回错误
+3. 键不存在时返回 nil（在 redisun 中为 null）
+
+## 参考资料
+
+- [Redis GET 命令官方文档](https://redis.io/docs/latest/commands/get/)

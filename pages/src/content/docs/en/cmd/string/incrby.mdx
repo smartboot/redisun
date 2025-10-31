@@ -1,0 +1,67 @@
+---
+title: INCRBY
+description: The Redis INCRBY command is used to increment the numeric value stored in a key by a specified increment.
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Add the given increment value to the value stored in key.
+
+If the key does not exist, the key's value will first be initialized to 0, and then the INCRBY operation will be performed.
+
+If the value contains the wrong type, or the string value cannot be represented as a number, an error is returned.
+
+The value of this operation is limited to 64-bit signed number representation.
+
+### Redis Native Command Syntax
+
+<Code code={`INCRBY key increment`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to increment
+- **increment**: The increment value (can be negative, negative means decrease)
+
+### Detailed Explanation
+
+The INCRBY command is an atomic operation and can be used to implement counter functionality. It is an operation for string type, but requires the string to be parseable as an integer.
+
+Compared to the INCR command, INCRBY allows specifying a specific increment value, not limited to 1.
+
+## Redisun Usage
+
+In redisun, the INCRBY command is implemented through the IncrByCommand class and the incrBy method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Increment the key's value (increase by 10)
+long result = redisun.incrBy("mycounter", 10);
+System.out.println("Counter value: " + result);
+
+// Asynchronous version
+CompletableFuture<Long> future = redisun.asyncIncrBy("mycounter", 10);
+future.thenAccept(value -> System.out.println("Async counter value: " + value));`} lang="java" />
+
+### Using Negative Numbers to Implement Decrease Operations
+
+<Code code={`// Decrease the key's value (decrease by 5)
+long result = redisun.incrBy("mycounter", -5);
+System.out.println("Counter value: " + result);`} lang="java" />
+
+## Notes
+
+1. If the key does not exist, it will be automatically created and initialized to 0
+2. If the key exists but is not a numeric string, an exception will be thrown
+3. The value range is limited to 64-bit signed integer range
+4. The operation is atomic and suitable for concurrent scenarios
+5. The increment parameter can be negative, in which case it implements a decrease operation
+
+## References
+
+- [Redis INCRBY Command Official Documentation](https://redis.io/commands/incrby/)

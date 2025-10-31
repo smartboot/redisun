@@ -1,0 +1,101 @@
+---
+title: ZADD
+description: Redis ZADD 命令用于将一个或多个成员及其分数添加到有序集合中。
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+ZADD 命令用于将所有指定的成员及其分数添加到存储在键 key 的有序集合中。可以指定多个分数/成员对。如果指定的成员已经是有序集合的成员，则会更新分数并重新插入元素以确保正确的排序。
+
+如果键不存在，则创建一个新的有序集合，其中指定的成员作为唯一成员。如果键存在但不持有有序集合，则返回错误。
+
+ZADD 命令的时间复杂度为 O(log(N))，其中 N 是有序集合中的元素数量。
+
+### Redis 原生命令语法
+
+<Code code={`ZADD key [NX | XX] [GT | LT] [CH] [INCR] score member [score member ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 有序集合的键
+- **NX**: 仅添加新元素，不更新已存在的元素
+- **XX**: 仅更新已存在的元素，不添加新元素
+- **LT**: 仅当新分数小于当前分数时才更新现有元素
+- **GT**: 仅当新分数大于当前分数时才更新现有元素
+- **CH**: 修改返回值为变更元素的数量，而不是新增元素的数量
+- **INCR**: 当此选项被指定时，ZADD 行为类似于 ZINCRBY
+- **score**: 成员的分数
+- **member**: 成员名称
+
+### 详细说明
+
+#### 基本用法
+
+ZADD 命令将成员添加到有序集合中，并为每个成员分配一个分数。有序集合中的成员按照分数升序排列。
+
+<Code code={`ZADD myzset 1 "one"
+ZADD myzset 1 "uno"
+ZADD myzset 2 "two" 3 "three"`} lang="bash" />
+
+##### ZADD 选项
+
+ZADD 支持多个选项，这些选项在键名之后、第一个分数参数之前指定：
+
+- XX: 仅更新已存在的元素，不添加新元素
+- NX: 仅添加新元素，不更新已存在的元素
+- LT: 仅当新分数小于当前分数时才更新现有元素（不阻止添加新元素）
+- GT: 仅当新分数大于当前分数时才更新现有元素（不阻止添加新元素）
+- CH: 修改返回值为变更元素的总数（包括新增和更新的元素）
+- INCR: 此选项指定 ZADD 行为类似于 ZINCRBY，只能指定一个分数-元素对
+
+注意：GT、LT 和 NX 选项是互斥的。
+
+##### 分数精度
+
+Redis 有序集合使用双精度 64 位浮点数表示分数。在所有支持的架构中，这被表示为 IEEE 754 浮点数，能够精确表示 -(2^53) 到 +(2^53) 范围内的整数。
+
+##### 相同分数的元素
+
+虽然同一个元素在有序集合中不能重复，但可以添加多个具有相同分数的不同元素。当多个元素具有相同分数时，它们按字典序排列。
+
+## Redisun 使用方式
+
+在 redisun 中，ZADD 命令通过 [ZAddCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZAddCommand.java) 类和 Redisun 类中的 `zadd` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 添加单个成员到有序集合
+int addedCount = redisun.zadd("myzset", 1.0, "member1");
+
+// 添加多个成员
+redisun.zadd("myzset", 1.0, "member1");
+redisun.zadd("myzset", 2.5, "member2");
+redisun.zadd("myzset", 3.7, "member3");`} lang="java" />
+
+### 异步用法
+
+<Code code={`// 异步添加成员到有序集合
+CompletableFuture<Integer> future = redisun.asyncZadd("myzset", 1.0, "member1");
+
+// 处理异步结果
+future.thenAccept(addedCount -> {
+    System.out.println("Added " + addedCount + " members");
+});`} lang="java" />
+
+## 注意事项
+
+1. 分数值应该是双精度浮点数的字符串表示
+2. +inf 和 -inf 值也是有效的分数值
+3. 有序集合中的每个元素都是唯一的，但可以有相同的分数
+4. 具有相同分数的元素按字典序排序
+
+## 参考资料
+
+- [Redis ZADD 命令官方文档](https://redis.io/docs/latest/commands/zadd/)

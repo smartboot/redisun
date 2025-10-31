@@ -1,0 +1,61 @@
+---
+title: RPOP
+description: Redis RPOP 命令用于移除并返回列表的最后一个元素。
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+移除并返回列表的尾部(右边)最后一个元素。如果列表为空或 key 不存在，则返回 nil。
+
+### Redis 原生命令语法
+
+<Code code={`RPOP key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 列表的键
+
+### 详细说明
+
+RPOP 命令是列表操作命令之一，它移除并返回列表的最后一个元素。如果列表为空或者 key 不存在，则返回 nil。
+
+## Redisun 使用方式
+
+在 redisun 中，RPOP 命令通过 RPopCommand 类和 Redisun 类中的 rpop 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 从列表尾部移除并获取元素
+String result = redisun.rpop("mylist");
+if (result != null) {
+    System.out.println("Popped element: " + result);
+} else {
+    System.out.println("List is empty or key does not exist");
+}
+
+// 异步版本
+CompletableFuture<String> future = redisun.asyncRpop("mylist");
+future.thenAccept(element -> {
+    if (element != null) {
+        System.out.println("Async popped element: " + element);
+    } else {
+        System.out.println("List is empty or key does not exist");
+    }
+});`} lang="java" />
+
+## 注意事项
+
+1. 如果列表为空或 key 不存在，返回 null
+2. 如果 key 存在但不是列表类型，会抛出异常
+3. 操作是原子性的
+4. 在阻塞版本的 BRPOP 命令中，当列表为空时会阻塞等待，但 RPOP 不会阻塞
+
+## 参考资料
+
+- [Redis RPOP 命令官方文档](https://redis.io/commands/rpop/)

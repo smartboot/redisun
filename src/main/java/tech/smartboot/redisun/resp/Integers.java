@@ -28,11 +28,37 @@ import java.nio.ByteBuffer;
  * @version v1.0 10/21/25
  * @see <a href="https://redis.io/docs/latest/develop/reference/protocol-spec/#integers">RESP Integers Specification</a>
  */
-public final class Integers extends RESP<Integer> {
+public class Integers extends RESP<Integer> {
     // 解析状态常量
     private static final byte DECODE_STATE_INIT = 0;   // 初始化状态，读取符号位
     private static final byte DECODE_STATE_VALUE = 1;  // 读取数值状态
     private static final byte DECODE_STATE_END = 2;    // 解析完成状态
+
+    public static final Integers[] ZERO_TO_NINES = new Integers[10];
+
+    static {
+        for (int i = 0; i < ZERO_TO_NINES.length; i++) {
+            Integers integers = new Integers() {
+                @Override
+                public boolean decode(ByteBuffer readBuffer) {
+                    return true;
+                }
+            };
+            integers.setValue(i);
+            ZERO_TO_NINES[i] = integers;
+        }
+    }
+
+    public static Integers of(ByteBuffer readBuffer) {
+        if (readBuffer.remaining() >= 3 && readBuffer.get(readBuffer.position() + 1) == RESP.CR && readBuffer.get(readBuffer.position() + 2) == RESP.LF) {
+            byte b = readBuffer.get(readBuffer.position());
+            if (b >= '0' && b <= '9') {
+                readBuffer.position(readBuffer.position() + 3);
+                return ZERO_TO_NINES[b & 0x0F];
+            }
+        }
+        return new Integers();
+    }
 
     // 当前解析状态
     private byte state = DECODE_STATE_INIT;
@@ -100,9 +126,7 @@ public final class Integers extends RESP<Integer> {
      */
     @Override
     public String toString() {
-        return "IntegerResponse{" +
-                "value=" + getValue() +
-                '}';
+        return "IntegerResponse{" + "value=" + getValue() + '}';
     }
 
     /**
@@ -115,7 +139,7 @@ public final class Integers extends RESP<Integer> {
     public void writeTo(WriteBuffer writeBuffer) throws IOException {
         // 写入整数类型标识符
         writeBuffer.write(RESP_DATA_TYPE_INTEGER);
-        writeInt(writeBuffer,value);
+        writeInt(writeBuffer, value);
 //        // 处理负数情况
 //        if (value < 0) {
 //            writeBuffer.write('-');
@@ -123,7 +147,5 @@ public final class Integers extends RESP<Integer> {
 //        }
 //        // 写入数值
 //        writeBuffer.write(String.valueOf(value).getBytes());
-        // 写入行终止符
-        writeBuffer.write(CRLF);
     }
 }

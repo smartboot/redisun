@@ -1,7 +1,10 @@
 package tech.smartboot.redisun;
 
+import org.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -29,4 +32,8 @@ public abstract class Command {
      */
     protected abstract List<BulkStrings> buildParams();
 
+    public void writeTo(WriteBuffer writeBuffer) throws IOException {
+        List params = buildParams();
+        RESP.ofArray(params).writeTo(writeBuffer);
+    }
 }

@@ -1,0 +1,59 @@
+---
+title: STRLEN
+description: The Redis STRLEN command is used to get the length of the string value of a specified key.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Return the length of the string value stored in key.
+
+When key does not store a string value, an error is returned.
+
+### Redis Native Command Syntax
+
+<Code code={`STRLEN key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to get the length
+
+### Detailed Explanation
+
+The STRLEN command is used to get the length of the string value stored in a specified key. For non-existent keys, the command returns 0.
+
+## Redisun Usage
+
+In redisun, the STRLEN command is implemented through the StrlenCommand class and the strlen method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Set a string value
+redisun.set("mykey", "Hello World");
+
+// Get string length
+int length = redisun.strlen("mykey");
+System.out.println("String length: " + length); // Output: 11
+
+// Get length of non-existent key
+length = redisun.strlen("nonexistent");
+System.out.println("Non-existent key length: " + length); // Output: 0
+
+// Asynchronous version
+CompletableFuture<Integer> future = redisun.asyncStrlen("mykey");
+future.thenAccept(len -> System.out.println("Async length: " + len));`} lang="java" />
+
+## Notes
+
+1. For non-existent keys, return length 0
+2. If key exists but is not of string type, an exception will be thrown
+3. The length of an empty string is 0
+
+## References
+
+- [Redis STRLEN Command Official Documentation](https://redis.io/commands/strlen/)

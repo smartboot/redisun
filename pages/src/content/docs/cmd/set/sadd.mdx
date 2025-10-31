@@ -1,0 +1,63 @@
+---
+title: SADD
+description: Redis SADD 命令用于向集合中添加一个或多个成员。
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+将一个或多个成员加入到集合中，已经存在于集合的成员将被忽略。
+
+如果集合不存在，则创建一个只包含添加的成员作成员的集合。
+
+### Redis 原生命令语法
+
+<Code code={`SADD key member [member ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 集合的键
+- **member**: 要添加的一个或多个成员
+
+### 详细说明
+
+SADD 命令用于向Redis集合中添加一个或多个成员。集合是无序且不重复的字符串集合，每个成员都是唯一的。
+
+## Redisun 使用方式
+
+在 redisun 中，SADD 命令通过 SAddCommand 类和 Redisun 类中的 sadd 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 添加单个成员到集合
+int added = redisun.sadd("myset", "member1");
+System.out.println("Added members: " + added); // 输出: 1
+
+// 添加多个成员到集合
+added = redisun.sadd("myset", "member2", "member3");
+System.out.println("Added members: " + added); // 输出: 2
+
+// 添加重复成员，只会添加新成员
+added = redisun.sadd("myset", "member1", "member4");
+System.out.println("Added members: " + added); // 输出: 1
+
+// 异步版本
+CompletableFuture<Integer> future = redisun.asyncSadd("myset", "member5");
+future.thenAccept(count -> System.out.println("Async added members: " + count));`} lang="java" />
+
+## 注意事项
+
+1. 如果集合不存在，会自动创建一个新的集合并添加成员
+2. 已经存在于集合中的成员会被忽略，不会重复添加
+3. 命令返回被成功添加到集合中的新元素数量
+4. 集合中的每个成员都是唯一的，不允许重复
+5. 集合适用于标签、好友列表等去重场景
+
+## 参考资料
+
+- [Redis SADD 命令官方文档](https://redis.io/commands/sadd/)

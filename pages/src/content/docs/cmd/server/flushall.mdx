@@ -1,0 +1,70 @@
+---
+title: FLUSHALL
+description: Redis FLUSHALL 命令用于删除所有数据库中的所有键。
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+FLUSHALL 命令删除所有现有数据库中的所有键，而不仅仅是当前选定的数据库。这个命令永远不会失败。
+
+FLUSHALL 命令的时间复杂度为 O(N)，其中 N 是所有数据库中的键总数。
+
+### Redis 原生命令语法
+
+<Code code={`FLUSHALL [ASYNC | SYNC]`} lang="bash" />
+
+**参数说明**
+
+- **ASYNC**: 异步刷新数据库
+- **SYNC**: 同步刷新数据库
+
+### 详细说明
+
+FLUSHALL 命令是 Redis 中最强大的命令之一，它会清空整个 Redis 实例中的所有数据，包括所有数据库中的所有键。
+
+默认情况下，FLUSHALL 会同步刷新所有数据库。从 Redis 6.2 开始，通过设置 lazyfree-lazy-user-flush 配置指令为 "yes" 可以将默认刷新模式更改为异步。
+
+#### 刷新模式
+
+- ASYNC: 异步刷新数据库，不会阻塞服务器
+- SYNC: 同步刷新数据库，会阻塞服务器直到操作完成
+
+#### 注意事项
+
+1. 异步 FLUSHALL 命令只会删除命令调用时存在的键，命令执行过程中创建的键不会被删除
+2. 此命令不会删除函数
+3. 除了清空所有数据库外，此命令还会清除 RDB 持久化文件，中止任何正在进行的快照，并保存一个空的 RDB 文件
+
+## Redisun 使用方式
+
+在 redisun 中，FLUSHALL 命令通过 [FlushAllCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushAllCommand.java) 类和 Redisun 类中的 `flushAll` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 清空所有数据库
+boolean result = redisun.flushAll();
+if (result) {
+    System.out.println("All databases cleared successfully");
+}`} lang="java" />
+
+## 历史变更
+
+- Redis 4.0.0：添加了 ASYNC 刷新模式修饰符
+- Redis 6.2.0：添加了 SYNC 刷新模式修饰符
+
+## 注意事项
+
+1. FLUSHALL 是一个危险的命令，会删除所有数据，请谨慎使用
+2. 在生产环境中使用前，请确保已备份重要数据
+3. 异步模式可以减少对服务器性能的影响
+
+## 参考资料
+
+- [Redis FLUSHALL 命令官方文档](https://redis.io/commands/flushall/)

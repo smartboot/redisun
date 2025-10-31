@@ -111,6 +111,11 @@ public class RedisunOptions {
         return this;
     }
 
+    public RedisunOptions minConnections(int minConnections) {
+        this.multiplexOptions.minConnections(minConnections);
+        return this;
+    }
+
     public RedisunOptions debug(boolean debug) {
         if (debug) {
             multiplexOptions.addPlugin(new StreamMonitorPlugin<>());

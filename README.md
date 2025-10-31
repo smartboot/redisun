@@ -9,15 +9,14 @@
 
 Redisun is a lightweight Redis client based on [smart-socket](https://github.com/smartboot/smart-socket) designed for the Java platform. It supports asynchronous non-blocking I/O operations and provides high-performance Redis connection and command execution capabilities.
 
+🚀Redisun is continuously expanding its Redis command support. For a complete list of supported commands and their documentation, please refer to our  [Supported Commands](https://smartboot.tech/redisun/guides/about/#redis-命令支持情况) page.
+
 ## Features
 
-- **Lightweight Design**: Core code consists of only a few classes, with a jar size of only 33KB and minimal resource usage
-- **High-performance Communication**: Based on smart-socket Java AIO implementation with strong single-thread processing capabilities and low resource consumption
-- **Connection Multiplexing Technology**: Innovative connection multiplexing mechanism that allows one connection to handle multiple concurrent requests
-- **RESP Protocol Support**: Full support for Redis Serialization Protocol (RESP), compatible with Redis servers
-- **Command Extension Mechanism**: Provides a simple and easy-to-use command extension interface for adding custom Redis commands
-- **Multi-database Support**: Supports Redis multi-database switching
-- **Authentication Support**: Supports username/password authentication for Redis servers
+- **Lightweight**: Core code consists of only a few classes, with a jar size of only 50KB
+- **High Performance**: Based on smart-socket Java AIO implementation with strong single-thread processing capabilities
+- **Multiplexing**: One connection can handle multiple concurrent requests
+- **Extensible**: Simple command extension interface for adding custom Redis commands
 
 ## Core Components
 
@@ -122,18 +121,6 @@ Redisun redisun = Redisun.create(options -> {
 });
 ```
 
-## Supported Commands
-
-Currently supported Redis commands:
-
-- `HELLO` - Server handshake and authentication
-- `SET` - Set key-value pairs, supporting multiple options (NX, XX, EX, PX, EXAT, PXAT, KEEPTTL)
-- `GET` - Get the value of a key
-- `DEL` - Delete one or more keys
-- `ZADD` - Add members to a sorted set
-
-More command support is under development. You can also easily extend custom commands by extending the [Command](src/main/java/tech/smartboot/redisun/Command.java) class.
-
 ## Build and Test
 
 Make sure Maven is installed, then run the following command:
@@ -159,3 +146,9 @@ Pull requests and suggestions are welcome. Please refer to the project [issue tr
 ## Contact
 
 For questions or suggestions, please submit an issue or contact the project maintainer [三刀](https://github.com/smartdms).
+
+## Follow Us
+
+If you are interested in our project, please follow our WeChat official account to get the latest updates and technical sharing.
+
+<img src="https://smartboot.tech/wx_dyh.png" width="20%">

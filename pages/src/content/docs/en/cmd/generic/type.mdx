@@ -1,0 +1,55 @@
+---
+title: TYPE
+description: Get the type of value stored at key
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Get the type of value stored at key.
+
+### Redis Native Command Syntax
+
+<Code code={`TYPE key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to query type
+
+### Detailed Explanation
+
+The TYPE command returns the type of value stored at key. Redis supports multiple data types, including string, list, set, sorted set (zset), hash, etc.
+
+#### Return Value
+
+Returns the type string of the value stored at key:
+- `string`: String type
+- `list`: List type
+- `set`: Set type
+- `zset`: Sorted set type
+- `hash`: Hash type
+- `none`: Key does not exist
+
+#### Time Complexity
+
+O(1)
+
+## Redisun Usage
+
+```java
+// Synchronous mode
+String type = redisun.type("mykey");
+
+// Asynchronous mode
+CompletableFuture<String> future = redisun.asyncType("mykey");
+```
+
+**Notes**
+
+- The TYPE command only returns the type of value stored at key, not the value itself
+- For non-existent keys, the TYPE command returns "none"
+
+**References**
+
+- [Redis TYPE Command](https://redis.io/commands/type/)

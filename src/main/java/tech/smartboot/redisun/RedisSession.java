@@ -3,6 +3,7 @@ package tech.smartboot.redisun;
 import tech.smartboot.redisun.resp.RESP;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Redis会话管理类
@@ -22,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
  * @see CompletableFuture 异步计算结果容器
  */
 final class RedisSession {
+    private final ConcurrentLinkedQueue<CompletableFuture<RESP>> pipeline = new ConcurrentLinkedQueue<>();
     /**
      * 正在解码的响应对象
      * <p>
@@ -32,14 +34,16 @@ final class RedisSession {
      */
     private RESP decodingResponse;
 
-    /**
-     * 异步操作结果的Future对象
-     * <p>
-     * 用于保存当前会话中正在进行的异步操作结果。
-     * 当Redis服务器返回响应后，会通过此Future对象通知调用方。
-     * </p>
-     */
-    private CompletableFuture<RESP> future;
+    private int offerCount = 0;
+    private int pollCount = 0;
+
+    public int incrOfferCount() {
+        return ++offerCount;
+    }
+
+    public int getOfferCount() {
+        return offerCount;
+    }
 
     /**
      * 获取正在解码的响应对象
@@ -59,21 +63,23 @@ final class RedisSession {
         this.decodingResponse = decodingResponse;
     }
 
-    /**
-     * 获取异步操作结果的Future对象
-     *
-     * @return 异步操作结果的Future对象
-     */
-    public CompletableFuture<RESP> getFuture() {
-        return future;
+    public CompletableFuture<RESP> poll() {
+        pollCount++;
+        return pipeline.poll();
     }
 
-    /**
-     * 设置异步操作结果的Future对象
-     *
-     * @param future 异步操作结果的Future对象
-     */
-    public void setFuture(CompletableFuture<RESP> future) {
-        this.future = future;
+    public void offer(CompletableFuture<RESP> future) {
+        pipeline.offer(future);
     }
+
+    public int getPollCount() {
+        return pollCount;
+    }
+
+    int load() {
+        int size = offerCount - pollCount;
+//        System.out.println("load: " + size);
+        return size >= 0 ? size : -size;
+    }
+
 }

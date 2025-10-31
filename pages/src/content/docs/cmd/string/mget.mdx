@@ -1,0 +1,61 @@
+---
+title: MGET
+description: Redis MGET 命令用于获取多个键的值。
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+返回所有(一个或多个)给定 key 的值。
+
+如果给定的 key 里面，有某个 key 不存在，那么这个 key 返回特殊值 nil 。因此，该命令永不失败。
+
+### Redis 原生命令语法
+
+<Code code={`MGET key [key ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 一个或多个要获取值的键
+
+### 详细说明
+
+MGET 命令是原子操作，用于同时获取多个键的值。相比于多次调用 GET 命令，MGET 可以减少网络往返次数，提高性能。
+
+## Redisun 使用方式
+
+在 redisun 中，MGET 命令通过 MGetCommand 类和 Redisun 类中的 mget 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 准备键列表
+List<String> keys = Arrays.asList("key1", "key2", "key3");
+
+// 获取多个键的值
+List<String> values = redisun.mget(keys);
+for (int i = 0; i < values.size(); i++) {
+    System.out.println(keys.get(i) + " = " + values.get(i));
+}
+
+// 异步版本
+CompletableFuture<List<String>> future = redisun.asyncMget(keys);
+future.thenAccept(result -> {
+    for (int i = 0; i < result.size(); i++) {
+        System.out.println(keys.get(i) + " = " + result.get(i));
+    }
+});`} lang="java" />
+
+## 注意事项
+
+1. 如果某个键不存在，返回列表中对应位置的值为 null
+2. MGET 是原子操作，要么全部执行成功，要么全部执行失败
+3. 性能优于多次调用 GET 命令，因为它减少了网络往返次数
+
+## 参考资料
+
+- [Redis MGET 命令官方文档](https://redis.io/commands/mget/)

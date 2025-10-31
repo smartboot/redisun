@@ -1,0 +1,57 @@
+---
+title: RPUSH
+description: The Redis RPUSH command is used to insert one or more values at the tail of a list.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Insert one or more values at the tail (right side) of the list. If the key does not exist, an empty list will be created and the RPUSH operation will be performed. When the key exists but is not of list type, an error is returned.
+
+### Redis Native Command Syntax
+
+<Code code={`RPUSH key element [element ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the list
+- **element**: One or more elements to insert at the tail of the list
+
+### Detailed Explanation
+
+The RPUSH command is one of the list operation commands. It inserts the specified elements at the tail of the list. If there are multiple elements, they will be inserted at the tail of the list in left-to-right order.
+
+## Redisun Usage
+
+In redisun, the RPUSH command is implemented through the RPushCommand class and the rpush method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Insert a single element at the tail of the list
+long result = redisun.rpush("mylist", "value1");
+System.out.println("List length after RPUSH: " + result);
+
+// Insert multiple elements at the tail of the list
+long result2 = redisun.rpush("mylist", "value2", "value3");
+System.out.println("List length after RPUSH multiple values: " + result2);
+
+// Asynchronous version
+CompletableFuture<Long> future = redisun.asyncRpush("mylist", "value4");
+future.thenAccept(length -> System.out.println("Async RPUSH result: " + length));`} lang="java" />
+
+## Notes
+
+1. If the key does not exist, an empty list will be automatically created and then the RPUSH operation will be performed
+2. If the key exists but is not of list type, an exception will be thrown
+3. When inserting multiple elements, they will be inserted at the tail of the list in parameter order from left to right
+4. The command returns the length of the list after the operation
+5. The operation is atomic
+
+## References
+
+- [Redis RPUSH Command Official Documentation](https://redis.io/commands/rpush/)

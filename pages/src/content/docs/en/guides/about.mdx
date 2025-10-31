@@ -1,0 +1,123 @@
+---
+title: Introduction to Redisun
+description: Redisun is a lightweight, high-performance Redis client based on smart-socket, designed for the Java platform.
+sidebar:
+  order: 1
+---
+
+import { Card } from '@astrojs/starlight/components';
+
+## What is Redisun?
+
+Redisun is a lightweight, high-performance Redis client based on [smart-socket](https://github.com/smartboot/smart-socket) designed for the Java platform. It supports asynchronous non-blocking I/O operations and provides memory key-value storage access capabilities compatible with Redis servers.
+
+<Card title="💡 Core Features" icon="rocket">
+  - **Lightweight Design**: The core code consists of only a few classes, the jar package is only 33KB, and resource usage is minimal
+  - **High-Performance Communication**: Based on smart-socket Java AIO implementation, strong single-threaded processing capabilities, low resource consumption
+  - **Connection Multiplexing Technology**: Innovative connection multiplexing mechanism, one connection can handle multiple concurrent requests simultaneously
+  - **RESP Protocol Support**: Complete support for Redis Serialization Protocol (RESP), compatible with Redis servers
+</Card>
+
+## Basic Usage Example
+
+Here is a simple usage example showing how to use Redisun for basic Redis operations:
+
+```java
+import tech.smartboot.redisun.Redisun;
+
+public class BasicExample {
+    public static void main(String[] args) {
+        // Create Redisun client instance
+        Redisun redisun = Redisun.create(options -> 
+            options.setAddress("127.0.0.1:6379")  // Set Redis server address
+                   .debug(true)                    // Enable debug mode
+        );
+
+        try {
+            // Set key-value pair
+            boolean setResult = redisun.set("hello", "world");
+            System.out.println("SET operation result: " + setResult);
+
+            // Get key value
+            String getResult = redisun.get("hello");
+            System.out.println("GET operation result: " + getResult);
+
+            // Delete key
+            int delResult = redisun.del("hello");
+            System.out.println("DEL operation result: " + delResult);
+        } finally {
+            // Close client, release resources
+            redisun.close();
+        }
+    }
+}
+```
+
+### More Operation Examples
+
+Redisun also supports more Redis commands, such as sorted set operations:
+
+```java
+// Add elements to sorted set
+int zaddResult = redisun.zadd("myzset", 1.0, "member1");
+System.out.println("ZADD operation result: " + zaddResult);
+
+// Optional parameter settings
+boolean setResultWithOptions = redisun.set("key", "value", cmd -> 
+    cmd.expire(60)              // Set 60-second expiration
+       .setIfNotExists()        // Set only if key does not exist
+);
+System.out.println("SET operation with options result: " + setResultWithOptions);
+```
+
+Through these examples, you can see that Redisun's API design is simple and intuitive, making it easy to integrate into your projects.
+
+## Redis Command Support Status
+
+Redisun is continuously expanding support for Redis commands. Here is the current command implementation status:
+
+### ✅ Fully Supported Commands
+
+| Command | Description | Implementation Class | Notes |
+|------|------|--------|------|
+| `HELLO` | Server handshake and authentication | [HelloCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HelloCommand.java) | Supports authentication and protocol negotiation |
+| `SET` | Set key-value pairs | [SetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SetCommand.java) | Complete option support: NX, XX, EX, PX, PXAT, KEEPTTL |
+| `GET` | Get the value of a key | [GetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/GetCommand.java) | Basic key-value retrieval |
+| `DEL` | Delete one or more keys | [DelCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DelCommand.java) | Supports multi-key deletion |
+| `ZADD` | Add members to sorted set | [ZAddCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZAddCommand.java) | Basic sorted set member addition |
+| `SELECT` | Switch database | [SelectCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SelectCommand.java) | Only executed during initial connection, does not support runtime switching |
+| `DBSIZE` | Return the number of keys in the current database | [DBSizeCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DBSizeCommand.java) | Count keys in current database |
+| `FLUSHALL` | Clear all databases | [FlushAllCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushAllCommand.java) | Delete keys from all databases |
+| `FLUSHDB` | Clear current database | [FlushDbCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/FlushDbCommand.java) | Clear current database |
+| `EXISTS` | Check if key exists | [ExistsCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ExistsCommand.java) | Check if one or more keys exist |
+| `INCR` | Increment the integer value of a key by one | [IncrCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/IncrCommand.java) | Atomic increment operation |
+| `DECR` | Decrement the integer value of a key by one | [DecrCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DecrCommand.java) | Atomic decrement operation |
+| `APPEND` | Append a value to a key | [AppendCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/AppendCommand.java) | String append operation |
+| `STRLEN` | Get the length of a key's value | [StrlenCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/StrlenCommand.java) | String length operation |
+| `HSET` | Set the string value of a hash field | [HSetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HSetCommand.java) | Hash field set operation |
+| `HGET` | Get the value of a hash field | [HGetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HGetCommand.java) | Hash field get operation |
+| `SADD` | Add one or more members to a set | [SAddCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SAddCommand.java) | Set member add operation |
+| `INCRBY` | Increment the integer value of a key by the given number | [IncrByCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/IncrByCommand.java) | Atomic increment operation |
+| `DECRBY` | Decrement the integer value of a key by the given number | [DecrByCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DecrByCommand.java) | Atomic decrement operation |
+| `MGET` | Get the values of all given keys | [MGetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/MGetCommand.java) | Get multiple key values |
+| `MSET` | Set multiple key-value pairs | [MSetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/MSetCommand.java) | Set multiple key-value pairs |
+| `EXPIRE` | Set a timeout on a key | [ExpireCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ExpireCommand.java) | Supports NX, XX, GT, LT options |
+| `TTL` | Get the time to live for a key | [TtlCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/TtlCommand.java) | Returns the remaining lifetime of a key in seconds |
+| `TYPE` | Determine the type stored at a key | [TypeCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/TypeCommand.java) | Returns the type stored at a key |
+| `LPUSH` | Insert elements at the head of a list | [LPushCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/LPushCommand.java) | Insert one or more elements at the head of a list |
+| `RPUSH` | Insert elements at the tail of a list | [RPushCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/RPushCommand.java) | Insert one or more elements at the tail of a list |
+| `LPOP` | Remove and return the first element of a list | [LPopCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/LPopCommand.java) | Remove and return the first element of a list |
+| `RPOP` | Remove and return the last element of a list | [RPopCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/RPopCommand.java) | Remove and return the last element of a list |
+| `ZREM` | Remove members from a sorted set | [ZRemCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRemCommand.java) | Remove one or more members from a sorted set |
+| `ZRANGE` | Return a range of members in a sorted set | [ZRangeCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRangeCommand.java) | Return members in a specified index range of a sorted set |
+| `ZSCORE` | Get the score associated with the given member in a sorted set | [ZScoreCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZScoreCommand.java) | Get the score of a specified member in a sorted set |
+
+### 🚧 Commands In Progress/Planned
+
+We are actively expanding Redis command support. More commands will be included in future versions.
+
+### 🛠 Custom Command Extension
+
+Redisun provides a powerful extension mechanism. You can easily implement custom Redis commands by extending the [Command](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Command.java) base class. This makes it simple to add support for any Redis commands not yet built into the library.
+
+For detailed information on using custom commands to extend Redisun, please refer to our [Extension Guide](https://smartboot.tech/redisun/guides/cmd_expand/).

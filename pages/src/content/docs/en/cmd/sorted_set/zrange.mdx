@@ -1,0 +1,142 @@
+---
+title: ZRANGE
+description: The Redis ZRANGE command is used to return members in a specified range of a sorted set.
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The ZRANGE command returns members within a specified range in the sorted set stored at key.
+
+Starting from Redis 6.2.0, the ZRANGE command supports BYSCORE, BYLEX, and REV options, which can replace the ZREVRANGE, ZRANGEBYSCORE, ZREVRANGEBYSCORE, ZRANGEBYLEX, and ZREVRANGEBYLEX commands.
+
+The time complexity of the ZRANGE command is O(log(N)+M), where N is the number of elements in the sorted set and M is the number of returned elements.
+
+### Redis Native Command Syntax
+
+<Code code={`ZRANGE key min max [BYSCORE|BYLEX] [REV] [WITHSCORES]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the sorted set
+- **min**: Range start position (inclusive), counted from 0
+- **max**: Range end position (inclusive), negative numbers can be used to count from the end
+- **BYSCORE**: Query by score
+- **BYLEX**: Query by lexicographical order
+- **REV**: Reverse order
+- **WITHSCORES**: Optional parameter, also return members' scores
+
+### Detailed Explanation
+
+The ZRANGE command returns members within a specified range in a sorted set, with members arranged in ascending order by score. The index parameters min and max are zero-based, i.e., 0 represents the first member of the sorted set, 1 represents the second member, and so on. Negative index numbers can also be used, -1 represents the last member, -2 represents the second-to-last member, and so on.
+
+Starting from Redis 6.2.0, the ZRANGE command supports the following options:
+
+- **BYSCORE**: Query by score, where min and max represent score ranges
+- **BYLEX**: Query by lexicographical order, where min and max represent lexicographical ranges
+- **REV**: Reverse order, elements are sorted from highest to lowest score
+- **WITHSCORES**: Also return members' scores
+
+#### Return Value
+
+- If the WITHSCORES option is not specified, return a list of members within the specified range
+- If the WITHSCORES option is specified, return a list of alternating members and scores
+
+#### Example
+
+<Code code={`redis> ZADD myzset 1 "one" 2 "two" 3 "three"
+(integer) 3
+redis> ZRANGE myzset 0 -1
+1) "one"
+2) "two"
+3) "three"
+redis> ZRANGE myzset 2 3
+1) "three"
+redis> ZRANGE myzset -2 -1
+1) "two"
+2) "three"
+redis> ZRANGE myzset 0 1 WITHSCORES
+1) "one"
+2) "1"
+3) "two"
+4) "2"
+redis> ZRANGE myzset 1 2 BYSCORE
+1) "two"
+2) "three"
+redis> ZRANGE myzset 0 1 REV
+1) "three"
+2) "two"`} lang="bash" />
+
+## Redisun Usage
+
+In redisun, the ZRANGE command is implemented through the [ZRangeCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZRangeCommand.java) class and the `zrange` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Add some test data
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.0, "two");
+redisun.zadd("myzset", 3.0, "three");
+
+// Get all members
+List<String> members = redisun.zrange("myzset", 0, -1);
+
+// Get members in a specified range
+List<String> rangeMembers = redisun.zrange("myzset", 0, 1);
+
+// Get members in a specified range and their scores
+List<String> membersWithScores = redisun.zrange("myzset", 0, 1, cmd -> cmd.withScores());
+
+// Query by score range
+List<String> byScoreMembers = redisun.zrange("myzset", "1", "2", cmd -> cmd.byScore());
+
+// Query by lexicographical order
+List<String> byLexMembers = redisun.zrange("myzset", "[a", "[z", cmd -> cmd.byLex());
+
+// Reverse order
+List<String> revMembers = redisun.zrange("myzset", 0, -1, cmd -> cmd.rev());
+
+// Combine multiple options
+List<String> revWithScores = redisun.zrange("myzset", 0, -1, cmd -> cmd.rev().withScores());`} lang="java" />
+
+### Asynchronous Usage
+
+<Code code={`// Asynchronously get members
+CompletableFuture<List<String>> future = redisun.asyncZrange("myzset", 0, -1);
+
+// Handle asynchronous result
+future.thenAccept(members -> {
+    System.out.println("Members: " + members);
+});
+
+// Asynchronously get members and their scores
+CompletableFuture<List<String>> futureWithScores = redisun.asyncZrange("myzset", 0, 1, cmd -> cmd.withScores());
+
+// Handle asynchronous result
+futureWithScores.thenAccept(membersWithScores -> {
+    System.out.println("Members with scores: " + membersWithScores);
+});
+
+// Asynchronously query by score range
+CompletableFuture<List<String>> futureByScore = redisun.asyncZrange("myzset", "1", "2", cmd -> cmd.byScore());
+
+// Handle asynchronous result
+futureByScore.thenAccept(members -> {
+    System.out.println("Members by score: " + members);
+});`} lang="java" />
+
+## Notes
+
+1. Range parameters that exceed the sorted set range will not cause an error and will return the actually existing members
+2. When the start position is greater than the end position, an empty list will be returned
+3. When using the WITHSCORES option, members and scores appear alternately in the return result
+
+## References
+
+- [Redis ZRANGE Command Official Documentation](https://redis.io/docs/latest/commands/zrange/)

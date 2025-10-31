@@ -1,0 +1,68 @@
+---
+title: HGET
+description: The Redis HGET command is used to get the value of a specified field in a hash table.
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Returns the value of the specified field in the hash table.
+
+If the field does not exist, returns nil.
+
+If the key does not exist, returns nil.
+
+### Redis Native Command Syntax
+
+<Code code={`HGET key field`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the hash table
+- **field**: The field to get the value
+
+### Detailed Explanation
+
+The HGET command is used to get the value of the specified field stored in the hash table. It is a basic read operation used in conjunction with the HSET command.
+
+## Redisun Usage
+
+In redisun, the HGET command is implemented through the HGetCommand class and the hget method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Set hash table fields
+redisun.hset("user:1000", "name", "Alice");
+redisun.hset("user:1000", "email", "alice@example.com");
+
+// Get hash table field value
+String name = redisun.hget("user:1000", "name");
+System.out.println("User name: " + name); // Output: Alice
+
+// Get non-existent field
+String age = redisun.hget("user:1000", "age");
+System.out.println("User age: " + age); // Output: null
+
+// Get field of non-existent key
+String value = redisun.hget("nonexistent", "field");
+System.out.println("Value: " + value); // Output: null
+
+// Asynchronous version
+CompletableFuture<String> future = redisun.asyncHget("user:1000", "email");
+future.thenAccept(email -> System.out.println("User email: " + email));`} lang="java" />
+
+## Notes
+
+1. If the given field exists in the hash table, return the value of that field
+2. If the given field does not exist or the given key does not exist, return null
+3. The time complexity of the HGET command is O(1)
+4. Hash tables are suitable for storing objects, and HGET is the basic way to access object properties
+
+## References
+
+- [Redis HGET Command Official Documentation](https://redis.io/commands/hget/)

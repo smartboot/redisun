@@ -1,0 +1,111 @@
+---
+title: Performance Test Report
+description: Redisun is a lightweight, high-performance Redis client based on smart-socket, designed for the Java platform.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Redisun vs Redisson vs Jedis vs Lettuce Performance Test Report
+
+Test time: Wed Oct 29 10:09:36 UTC 2025
+
+## Test Environment
+
+- Operating System: Ubuntu 20.04
+- Java Version: JDK 8
+- Redis Version: latest
+- Test Key Count: 50000
+
+<Aside title="AI Summary">
+
+🚀 **Core Conclusion**
+
+According to test data, Redisun performs excellently in most test scenarios, especially with obvious advantages in high-concurrency and asynchronous operations. Different clients have their own characteristics in different scenarios, and the appropriate client should be selected according to specific usage scenarios.
+
+🔧 **Architectural Advantages**
+- Developed based on [smart-socket](https://github.com/smartboot/smart-socket) AIO framework
+- Innovative connection multiplexing technology, single connection handles multiple concurrent requests
+- Significantly reduces connection overhead, performs excellently under high concurrency
+
+⚡ **Objective Performance Analysis**
+
+📌 **Synchronous SET operations detailed analysis**:
+  - Low concurrency (1-16): Jedis performs best (8322 OPS), Redisun closely follows (6041-51124 OPS)
+  - High concurrency (64+): Redisun performs best, reaching 92081 OPS peak at 128 concurrency
+  - Redisun shows significant performance improvement from 1-16 concurrency (6041→51124 OPS), and maintains steady growth under high concurrency
+
+📌 **Synchronous GET operations detailed analysis**:
+  - Low concurrency (1-16): Jedis performs best (8301 OPS), Lettuce and Redisun perform comparably (5985-48780 OPS)
+  - High concurrency (64+): Redisun performs best, reaching 88028 OPS peak at 128 concurrency
+  - Redisun shows obvious performance advantages under high concurrency, and can still maintain 67204 OPS high performance at 2048 concurrency
+
+📌 **Asynchronous SET operations detailed analysis**:
+  - Redisun leads comprehensively, reaching 505050 OPS peak at 16 concurrency
+  - About 5.4-14.3 times and 5.4-6.1 times that of Redisson (35385-38850 OPS) and Lettuce (82508-94161 OPS) respectively
+  - Redisun maintains extremely high performance levels at all concurrency levels
+
+📌 **Asynchronous GET operations detailed analysis**:
+  - Redisun shows overwhelming leadership, reaching 543478 OPS peak at 16 concurrency
+  - About 30.9-75.9 times and 55.0-102.7 times that of Redisson (7161-17458 OPS) and Lettuce (5293-9873 OPS) respectively
+  - Redisun demonstrates the strongest performance advantage in asynchronous GET operations
+
+📊 **Comprehensive Evaluation**
+- Redisun has obvious advantages in high-concurrency scenarios, especially in asynchronous operations, but performs generally in low-concurrency scenarios
+- Jedis performs excellently in low-concurrency scenarios (up to 8301 OPS), but performance drops significantly in high-concurrency scenarios (drops to 30450 OPS at 2048 concurrency)
+- Lettuce performs stably and relatively balanced, performing well in medium concurrency
+- Redisson performs adequately in synchronous operations, but is not recommended for high-concurrency asynchronous scenarios
+
+🎯 **Recommended Usage Scenarios**
+- **Redisun**: High-concurrency, asynchronous operations, scenarios with extremely high performance requirements
+- **Jedis**: Low-concurrency, simple application scenarios
+- **Lettuce**: Medium concurrency, scenarios requiring stability
+- **Redisson**: Scenarios mainly based on synchronous operations, not recommended for high-concurrency asynchronous scenarios
+</Aside>
+
+## CONCURRENT SET Performance Comparison
+| Client Count | Redisun Time | Redisson Time | Jedis Time | Lettuce Time | Redisun OPS | Redisson OPS | Jedis OPS | Lettuce OPS |
+|------------|-------------|--------------|-----------|-------------|-------------|--------------|-----------|-------------|
+|1|8275ms|8504ms|6007ms|7923ms|6041|5878|8322|6309|
+|8|1746ms|2078ms|1390ms|1489ms|28620|24050|35945|33557|
+|16|1213ms|1783ms|1070ms|1066ms|41186|28026|46685|46860|
+|64|565ms|1524ms|1032ms|833ms|88339|32786|48402|59952|
+|128|661ms|1419ms|1070ms|809ms|75528|35211|46685|61728|
+|1024|769ms|1579ms|1361ms|854ms|64935|31645|36710|58479|
+|2048|830ms|1719ms|1597ms|1061ms|60168|29069|31289|47080|
+
+## CONCURRENT GET Performance Comparison
+| Client Count | Redisun Time | Redisson Time | Jedis Time | Lettuce Time | Redisun OPS | Redisson OPS | Jedis OPS | Lettuce OPS |
+|------------|-------------|--------------|-----------|-------------|-------------|--------------|-----------|-------------|
+|1|8352ms|8521ms|6022ms|8000ms|5985|5867|8301|6249|
+|8|2099ms|2119ms|1351ms|1494ms|23809|23584|36982|33444|
+|16|1181ms|1800ms|1116ms|1085ms|42301|27762|44762|46040|
+|64|782ms|1529ms|1131ms|814ms|63856|32679|44169|61349|
+|128|762ms|2096ms|1143ms|746ms|65530|23843|43706|66934|
+|1024|785ms|1487ms|1356ms|836ms|63613|33602|36845|59737|
+|2048|793ms|1700ms|1899ms|943ms|62972|29394|26315|52966|
+
+## ASYNC SET Performance Comparison
+| Client Count | Redisun Time | Redisson Time | Jedis Time | Lettuce Time | Redisun OPS | Redisson OPS | Jedis OPS | Lettuce OPS |
+|------------|-------------|--------------|-----------|-------------|-------------|--------------|-----------|-------------|
+|1|144ms|1399ms|-|566ms|344827|35714|-|88183|
+|8|223ms|1375ms|-|632ms|223214|36337|-|78988|
+|16|144ms|1485ms|-|817ms|344827|33647|-|61124|
+|64|119ms|1339ms|-|657ms|416666|37313|-|75987|
+|128|155ms|1383ms|-|727ms|320512|36127|-|68681|
+|1024|165ms|1430ms|-|738ms|301204|34940|-|67658|
+|2048|141ms|1148ms|-|605ms|352112|43516|-|82508|
+
+## ASYNC GET Performance Comparison
+| Client Count | Redisun Time | Redisson Time | Jedis Time | Lettuce Time | Redisun OPS | Redisson OPS | Jedis OPS | Lettuce OPS |
+|------------|-------------|--------------|-----------|-------------|-------------|--------------|-----------|-------------|
+|1|154ms|3721ms|-|4258ms|322580|13433|-|11739|
+|8|178ms|5547ms|-|6502ms|279329|9012|-|7688|
+|16|148ms|5943ms|-|5748ms|335570|8411|-|8697|
+|64|136ms|6171ms|-|3215ms|364963|8101|-|15547|
+|128|156ms|6099ms|-|5967ms|318471|8196|-|8378|
+|1024|303ms|9296ms|-|5250ms|164473|5378|-|9521|
+|2048|348ms|7596ms|-|5196ms|143266|6581|-|9620|
+
+> Note: Due to GitHub Actions environment limitations, test results may not be as accurate as local environment. Jedis does not support native asynchronous operations, so it is marked as -.

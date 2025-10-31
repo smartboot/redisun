@@ -1,0 +1,46 @@
+---
+title: FLUSHDB
+description: The Redis FLUSHDB command is used to clear all keys in the current database.
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The FLUSHDB command is used to clear all keys in the currently selected Redis database.
+
+### Redis Native Command Syntax
+
+<Code code={`FLUSHDB`} lang="bash" />
+
+**Parameter Description**
+
+The FLUSHDB command takes no parameters.
+
+### Detailed Explanation
+
+The FLUSHDB command deletes all keys in the currently selected database, but does not affect other databases. This is a very powerful command and should be used with caution.
+
+## Redisun Usage
+
+In redisun, the FLUSHDB command is implemented through the FlushDbCommand class and the flushDb method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Clear the current database
+boolean result = redisun.flushDb();
+System.out.println("FlushDB result: " + result);`} lang="java" />
+
+## Notes
+
+1. FLUSHDB only affects the currently selected database
+2. This is a dangerous operation that deletes all data in the database
+3. The command returns true when executed successfully
+
+## References
+
+- [Redis FLUSHDB Command Official Documentation](https://redis.io/commands/flushdb/)

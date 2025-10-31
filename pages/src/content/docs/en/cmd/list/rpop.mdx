@@ -1,0 +1,61 @@
+---
+title: RPOP
+description: The Redis RPOP command is used to remove and return the last element of a list.
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Remove and return the last element (right side) of the list. If the list is empty or the key does not exist, return nil.
+
+### Redis Native Command Syntax
+
+<Code code={`RPOP key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the list
+
+### Detailed Explanation
+
+The RPOP command is one of the list operation commands. It removes and returns the last element of the list. If the list is empty or the key does not exist, it returns nil.
+
+## Redisun Usage
+
+In redisun, the RPOP command is implemented through the RPopCommand class and the rpop method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Remove and get element from the tail of the list
+String result = redisun.rpop("mylist");
+if (result != null) {
+    System.out.println("Popped element: " + result);
+} else {
+    System.out.println("List is empty or key does not exist");
+}
+
+// Asynchronous version
+CompletableFuture<String> future = redisun.asyncRpop("mylist");
+future.thenAccept(element -> {
+    if (element != null) {
+        System.out.println("Async popped element: " + element);
+    } else {
+        System.out.println("List is empty or key does not exist");
+    }
+});`} lang="java" />
+
+## Notes
+
+1. If the list is empty or the key does not exist, return null
+2. If the key exists but is not of list type, an exception will be thrown
+3. The operation is atomic
+4. In the blocking version of the BRPOP command, it will block and wait when the list is empty, but RPOP will not block
+
+## References
+
+- [Redis RPOP Command Official Documentation](https://redis.io/commands/rpop/)

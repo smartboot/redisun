@@ -1,0 +1,67 @@
+---
+title: EXPIRE
+description: 为给定 key 设置过期时间
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+为给定 key 设置过期时间，以秒计。
+
+### Redis原生命令语法
+
+<Code code={`EXPIRE key seconds [NX | XX | GT | LT]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要设置过期时间的键
+- **seconds**: 过期时间（秒）
+- **NX**: 仅在键没有过期时间时设置
+- **XX**: 仅在键已有过期时间时设置
+- **GT**: 仅在新的过期时间大于当前过期时间时设置
+- **LT**: 仅在新的过期时间小于当前过期时间时设置
+
+### 详细说明
+
+EXPIRE 命令为给定的键设置过期时间。过期时间到达后，键会被自动删除。
+
+GT、LT和NX选项是互斥的，不能同时使用。
+
+对于没有过期时间的键，在GT和LT比较中被视为具有无限TTL。
+
+#### 返回值
+
+- 设置成功返回 1
+- 键不存在或条件不满足返回 0
+
+#### 时间复杂度
+
+O(1)
+
+## Redisun使用方式
+
+```java
+// 同步方式
+int result = redisun.expire("mykey", 60);
+
+// 同步方式带选项
+int result = redisun.expire("mykey", 60, cmd -> cmd.setIfNotExists());
+
+// 异步方式
+CompletableFuture<Integer> future = redisun.asyncExpire("mykey", 60);
+
+// 异步方式带选项
+CompletableFuture<Integer> future = redisun.asyncExpire("mykey", 60, cmd -> cmd.setIfExists());
+```
+
+**注意事项**
+
+- 过期时间以秒为单位
+- 如果键不存在，命令将返回 0
+- 可以通过 TTL 命令查看键的剩余生存时间
+- GT、LT和NX选项是互斥的
+
+**参考资料**
+
+- [Redis EXPIRE Command](https://redis.io/commands/expire/)

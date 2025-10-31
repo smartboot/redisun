@@ -1,0 +1,67 @@
+---
+title: EXPIRE
+description: Set a timeout on key
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Set a timeout on key in seconds.
+
+### Redis Native Command Syntax
+
+<Code code={`EXPIRE key seconds [NX | XX | GT | LT]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to set expiration time
+- **seconds**: Expiration time (seconds)
+- **NX**: Set only if the key has no expiration time
+- **XX**: Set only if the key already has an expiration time
+- **GT**: Set only if the new expiration time is greater than the current expiration time
+- **LT**: Set only if the new expiration time is less than the current expiration time
+
+### Detailed Explanation
+
+The EXPIRE command sets an expiration time for the given key. After the expiration time is reached, the key will be automatically deleted.
+
+The GT, LT, and NX options are mutually exclusive and cannot be used together.
+
+Keys without an expiration time are considered to have infinite TTL in GT and LT comparisons.
+
+#### Return Value
+
+- Returns 1 if set successfully
+- Returns 0 if the key does not exist or the condition is not met
+
+#### Time Complexity
+
+O(1)
+
+## Redisun Usage
+
+```java
+// Synchronous mode
+int result = redisun.expire("mykey", 60);
+
+// Synchronous mode with options
+int result = redisun.expire("mykey", 60, cmd -> cmd.setIfNotExists());
+
+// Asynchronous mode
+CompletableFuture<Integer> future = redisun.asyncExpire("mykey", 60);
+
+// Asynchronous mode with options
+CompletableFuture<Integer> future = redisun.asyncExpire("mykey", 60, cmd -> cmd.setIfExists());
+```
+
+**Notes**
+
+- Expiration time is in seconds
+- If the key does not exist, the command will return 0
+- You can view the remaining TTL of a key through the TTL command
+- GT, LT, and NX options are mutually exclusive
+
+**References**
+
+- [Redis EXPIRE Command](https://redis.io/commands/expire/)

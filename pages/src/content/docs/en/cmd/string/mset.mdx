@@ -1,0 +1,64 @@
+---
+title: MSET
+description: The Redis MSET command is used to set multiple key-value pairs simultaneously.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Set one or more key-value pairs simultaneously.
+
+If a given key already exists, MSET will overwrite the old value with the new value. Non-existent keys will be created.
+
+MSET is an atomic operation. The entire MSET operation either executes completely or not at all.
+
+### Redis Native Command Syntax
+
+<Code code={`MSET key value [key value ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to set
+- **value**: The value to set
+
+### Detailed Explanation
+
+The MSET command is an atomic operation used to set multiple key-value pairs simultaneously. Compared to calling the SET command multiple times, MSET can reduce the number of network round trips and improve performance.
+
+## Redisun Usage
+
+In redisun, the MSET command is implemented through the MSetCommand class and the mset method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Prepare key-value pair mapping
+Map<String, String> keyValuePairs = new HashMap<>();
+keyValuePairs.put("key1", "value1");
+keyValuePairs.put("key2", "value2");
+keyValuePairs.put("key3", "value3");
+
+// Set multiple key-value pairs
+boolean result = redisun.mset(keyValuePairs);
+System.out.println("MSET operation result: " + result);
+
+// Asynchronous version
+CompletableFuture<Boolean> future = redisun.asyncMset(keyValuePairs);
+future.thenAccept(success -> {
+    System.out.println("Async MSET operation result: " + success);
+});`} lang="java" />
+
+## Notes
+
+1. MSET is an atomic operation. Either all execute successfully or all fail
+2. If a key already exists, its value will be overwritten by the new value
+3. Better performance than calling the SET command multiple times, as it reduces network round trips
+4. If the number of keys and values do not match, it may cause an error
+
+## References
+
+- [Redis MSET Command Official Documentation](https://redis.io/commands/mset/)

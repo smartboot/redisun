@@ -1,0 +1,49 @@
+---
+title: DBSIZE
+description: Redis DBSIZE 命令用于返回当前数据库中键的数量。
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+DBSIZE 命令返回当前选定数据库中的键数量。这个命令永远不会失败，时间复杂度为 O(1)，是一个非常快速的操作。
+
+### Redis 原生命令语法
+
+<Code code={`DBSIZE`} lang="bash" />
+
+**参数说明**
+
+DBSIZE 命令不需要参数。
+
+### 详细说明
+
+DBSIZE 命令返回当前选定 Redis 数据库中的键总数。在 Redis 中，默认有 16 个数据库（编号从 0 到 15），可以使用 SELECT 命令在它们之间切换。
+
+每个数据库都是独立的命名空间，可以包含相同名称的键而不会冲突。DBSIZE 命令只返回当前选定数据库中的键数量。
+
+## Redisun 使用方式
+
+在 redisun 中，DBSIZE 命令通过 [DBSizeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DBSizeCommand.java) 类和 Redisun 类中的 `dbsize` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 获取当前数据库中键的数量
+long keyCount = redisun.dbsize();
+System.out.println("Current database has " + keyCount + " keys");`} lang="java" />
+
+## 注意事项
+
+1. DBSIZE 命令只统计当前选定数据库中的键
+2. 不同数据库之间是独立的命名空间
+3. 命令的时间复杂度为 O(1)，执行非常快速
+
+## 参考资料
+
+- [Redis DBSIZE 命令官方文档](https://redis.io/commands/dbsize/)

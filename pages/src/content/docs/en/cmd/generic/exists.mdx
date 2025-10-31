@@ -1,0 +1,56 @@
+---
+title: EXISTS
+description: The Redis EXISTS command is used to check if given keys exist.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The Redis `EXISTS` command is used to check if given keys exist.
+
+### Redis Native Command Syntax
+
+<Code code={`EXISTS key [key ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key(s) to check for existence, multiple keys can be specified
+
+### Detailed Explanation
+
+The `EXISTS` command checks if one or more keys exist. Starting from Redis 3.0.3, multiple keys can be specified.
+
+If a single key is specified, the command returns 1 if the key exists, 0 if the key does not exist.
+If multiple keys are specified, the command returns the number of keys that exist.
+
+## Redisun Usage
+
+In redisun, the EXISTS command is implemented through the ExistsCommand class and the exists method in the Redisun class.
+
+### Synchronous Mode
+
+<Code code={`// Check if a single key exists
+int exists = redisun.exists("mykey");
+
+// Check if multiple keys exist
+int exists = redisun.exists("mykey1", "mykey2", "mykey3");`} lang="java" />
+
+### Asynchronous Mode
+
+<Code code={`// Check if a single key exists
+CompletableFuture<Integer> future = redisun.asyncExists("mykey");
+
+// Check if multiple keys exist
+CompletableFuture<Integer> future = redisun.asyncExists("mykey1", "mykey2", "mykey3");`} lang="java" />
+
+## Notes
+
+1. The time complexity of the `EXISTS` command is O(1).
+2. This command is applicable to all types of keys, including strings, hashes, lists, sets, and sorted sets.
+3. If a key has expired and been deleted, the `EXISTS` command will return 0.
+4. Starting from Redis 3.0.3, multiple keys can be checked at once, returning the number of keys that exist.
+
+## References
+
+- [Redis EXISTS Command Official Documentation](https://redis.io/commands/exists/)

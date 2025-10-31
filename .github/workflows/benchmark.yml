@@ -1,0 +1,116 @@
+name: 性能测试
+
+on:
+  # 允许手动触发
+  workflow_dispatch:
+  # 在推送代码到主分支时触发
+  push:
+    branches: [ master ]
+  # 在创建 pull request 时触发
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    services:
+      # 启动 Redis 服务
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # 检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # 设置 Java 环境
+      - name: 设置 Java 环境
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 编译项目
+      - name: 编译项目
+        run: mvn compile
+
+      # 运行 Redisun、Redisson、Jedis 和 Lettuce 性能测试
+      - name: 运行性能测试
+        run: |
+          # 串行执行所有客户端数量的测试
+          for client_count in 1 8 16 64 128 1024 2048; do
+            echo "Running Redisun vs Redisson vs Jedis vs Lettuce benchmark tests with ${client_count} clients..."
+          
+            for framework in Redisson Jedis Lettuce Redisun; do
+              echo "Running ${framework} benchmark with ${client_count} clients..."
+              mvn test -Dtest=${framework}Benchmark -Dclient.count=${client_count} > ${framework}_${client_count}.log 2>&1 || true
+            done
+          done
+
+      # 提取测试结果
+      - name: 提取测试结果
+        run: |
+          echo "# Redisun vs Redisson vs Jedis vs Lettuce 性能测试报告" > benchmark-report.md
+          echo "测试时间: $(date)" >> benchmark-report.md
+          echo "" >> benchmark-report.md
+          echo "## 测试环境" >> benchmark-report.md
+          echo "- 操作系统: Ubuntu 20.04" >> benchmark-report.md
+          echo "- Java 版本: JDK 8" >> benchmark-report.md
+          echo "- Redis 版本: latest" >> benchmark-report.md
+          echo "- 测试键数量: 50000" >> benchmark-report.md
+          echo "" >> benchmark-report.md
+          
+          echo "## 详细数据" >> benchmark-report.md
+          for case in "CONCURRENT SET" "CONCURRENT GET" "ASYNC SET" "ASYNC GET"; do 
+            echo "### ${case}" >> benchmark-report.md
+            echo "| Concurrency | Redisun COST | Redisson COST | Jedis COST | Lettuce COST | Redisun OPS | Redisson OPS | Jedis OPS | Lettuce OPS |" >> benchmark-report.md
+            echo "|------------|-------------|--------------|-----------|-------------|-------------|--------------|-----------|-------------|" >> benchmark-report.md
+            # 遍历所有客户端数量提取结果
+            for client_count in 1 8 16 64 128 1024 2048; do
+              echo -n "|${client_count}|" >> benchmark-report.md
+          
+              # 耗时
+              for framework in Redisun Redisson Jedis Lettuce; do
+                if grep -q "\[${case}\] cost:" ${framework}_${client_count}.log; then
+                  cost_time=$(grep "\[${case}\] cost:" ${framework}_${client_count}.log | awk '{print $4}')
+                  echo -n "${cost_time}|" >> benchmark-report.md
+                else 
+                  echo -n "N/A|" >> benchmark-report.md
+                fi
+              done
+          
+              # OPS
+              for framework in Redisun Redisson Jedis Lettuce; do
+                  if grep -q "\[${case}\] ops/s:" ${framework}_${client_count}.log; then
+                    ops=$(grep "\[${case}\] ops/s:" ${framework}_${client_count}.log | awk '{print $4}')
+                    echo -n "${ops}|" >> benchmark-report.md
+                  else 
+                    echo -n "N/A|" >> benchmark-report.md
+                  fi
+              done
+              echo "" >> benchmark-report.md
+            done
+            echo "" >> benchmark-report.md
+          done
+          
+          echo "> 注意：由于 GitHub Actions 环境限制，测试结果可能不如本地环境准确。Jedis 不支持原生异步操作，因此标记为 -。" >> benchmark-report.md
+          echo "" >> benchmark-report.md
+          
+          # 显示报告内容
+          cat benchmark-report.md
+
+      # 上传测试报告作为工件
+      - name: 上传测试报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: benchmark-report.md

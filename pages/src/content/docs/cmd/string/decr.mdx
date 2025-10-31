@@ -1,0 +1,57 @@
+---
+title: DECR
+description: Redis DECR 命令用于将键中存储的数字值减一。
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+将 key 中储存的数字值减一。
+
+如果 key 不存在，那么 key 的值会先被初始化为 0 ，然后再执行 DECR 操作。
+
+如果值包含错误的类型，或字符串类型的值不能表示为数字，那么返回一个错误。
+
+本操作的值限制在 64 位(bit)有符号数字表示之内。
+
+### Redis 原生命令语法
+
+<Code code={`DECR key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要减少的键
+
+### 详细说明
+
+DECR 命令是原子操作，可以用于实现计数器功能。它是一个针对字符串类型的操作，但要求字符串必须能够被解析为整数。
+
+## Redisun 使用方式
+
+在 redisun 中，DECR 命令通过 DecrCommand 类和 Redisun 类中的 decr 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 减少键的值
+long result = redisun.decr("mycounter");
+System.out.println("Counter value: " + result);
+
+// 异步版本
+CompletableFuture<Long> future = redisun.asyncDecr("mycounter");
+future.thenAccept(value -> System.out.println("Async counter value: " + value));`} lang="java" />
+
+## 注意事项
+
+1. 如果 key 不存在，会自动创建并初始化为 0
+2. 如果 key 存在但不是数字字符串，会抛出异常
+3. 值的范围限制在 64 位有符号整数范围内
+4. 操作是原子性的，适用于并发场景
+
+## 参考资料
+
+- [Redis DECR 命令官方文档](https://redis.io/commands/decr/)

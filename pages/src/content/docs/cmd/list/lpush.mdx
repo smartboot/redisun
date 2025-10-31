@@ -1,0 +1,57 @@
+---
+title: LPUSH
+description: Redis LPUSH 命令用于将一个或多个值插入到列表的头部。
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+将一个或多个值插入到列表的头部(左边)。如果 key 不存在，一个空列表会被创建并执行 LPUSH 操作。当 key 存在但不是列表类型时，返回一个错误。
+
+### Redis 原生命令语法
+
+<Code code={`LPUSH key element [element ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 列表的键
+- **element**: 一个或多个要插入到列表头部的元素
+
+### 详细说明
+
+LPUSH 命令是列表操作命令之一，它将指定的元素插入到列表的头部。如果有多个元素，它们会按照从左到右的顺序依次插入到列表头部，这意味着最后一个元素会成为列表的第一个元素。
+
+## Redisun 使用方式
+
+在 redisun 中，LPUSH 命令通过 LPushCommand 类和 Redisun 类中的 lpush 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 插入单个元素到列表头部
+long result = redisun.lpush("mylist", "value1");
+System.out.println("List length after LPUSH: " + result);
+
+// 插入多个元素到列表头部
+long result2 = redisun.lpush("mylist", "value2", "value3");
+System.out.println("List length after LPUSH multiple values: " + result2);
+
+// 异步版本
+CompletableFuture<Long> future = redisun.asyncLpush("mylist", "value4");
+future.thenAccept(length -> System.out.println("Async LPUSH result: " + length));`} lang="java" />
+
+## 注意事项
+
+1. 如果 key 不存在，会自动创建一个空列表然后执行 LPUSH 操作
+2. 如果 key 存在但不是列表类型，会抛出异常
+3. 插入多个元素时，它们会按照参数顺序从左到右依次插入到列表头部
+4. 命令返回操作后列表的长度
+5. 操作是原子性的
+
+## 参考资料
+
+- [Redis LPUSH 命令官方文档](https://redis.io/commands/lpush/)

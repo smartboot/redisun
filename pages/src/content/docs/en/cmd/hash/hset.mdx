@@ -1,0 +1,65 @@
+---
+title: HSET
+description: The Redis HSET command is used to set the value of a specified field in a hash table.
+sidebar:
+  order: 7
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Set the value of field field in hash table key to value.
+
+If the hash table does not exist, a new hash table is created and the HSET operation is performed.
+
+If the field field already exists in the hash table, the old value will be overwritten.
+
+### Redis Native Command Syntax
+
+<Code code={`HSET key field value`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the hash table
+- **field**: The field in the hash table
+- **value**: The value to set
+
+### Detailed Explanation
+
+The HSET command is used to set the value of a specified field in a hash table. Redis hash tables are collections of key-value pairs, suitable for storing objects.
+
+## Redisun Usage
+
+In redisun, the HSET command is implemented through the HSetCommand class and the hset method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Set hash table fields
+int result = redisun.hset("user:1000", "name", "Alice");
+System.out.println("Set result: " + result); // Output: 1 (new field)
+
+// Update existing field
+result = redisun.hset("user:1000", "name", "Bob");
+System.out.println("Update result: " + result); // Output: 0 (update field)
+
+// Set multiple fields
+redisun.hset("user:1000", "email", "bob@example.com");
+redisun.hset("user:1000", "age", "25");
+
+// Asynchronous version
+CompletableFuture<Integer> future = redisun.asyncHset("user:1001", "name", "Charlie");
+future.thenAccept(res -> System.out.println("Async set result: " + res));`} lang="java" />
+
+## Notes
+
+1. If the field is a new field in the hash table and the value is set successfully, return 1
+2. If the field already exists in the hash table and the old value has been overwritten by the new value, return 0
+3. If the key does not exist, a new hash table will be automatically created
+4. Hash tables are suitable for storing objects, such as user information, product information, etc.
+
+## References
+
+- [Redis HSET Command Official Documentation](https://redis.io/commands/hset/)

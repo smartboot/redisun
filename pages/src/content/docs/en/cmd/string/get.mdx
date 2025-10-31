@@ -1,0 +1,63 @@
+---
+title: GET
+description: The Redis GET command is used to get the value of a specified key. If the key does not exist, nil is returned.
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The GET command is used to get the value of a specified key. If the key does not exist, nil is returned. The GET command can only handle string values. If the value stored in the key is not a string, an error will be returned.
+
+The time complexity of the GET command is O(1), making it a very fast operation.
+
+### Redis Native Command Syntax
+
+<Code code={`GET key`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key to get the value
+
+### Detailed Explanation
+
+The GET command is one of the most basic commands in Redis, used to retrieve the string value stored in a specified key. It is the corresponding operation to the SET command.
+
+When the key does not exist, the GET command returns the special value nil. If the key exists but the stored value is not a string (e.g., list, set, or other data types), an error will be returned.
+
+#### Basic Usage Example
+
+<Code code={`GET nonexisting
+SET mykey "Hello"
+GET mykey`} lang="bash" />
+
+## Redisun Usage
+
+In redisun, the GET command is implemented through the [GetCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/GetCommand.java) class and the `get` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Get the key value
+String value = redisun.get("mykey");
+
+// Handle potentially null cases
+if (value != null) {
+    System.out.println("Value: " + value);
+} else {
+    System.out.println("Key does not exist");
+}`} lang="java" />
+
+## Notes
+
+1. The GET command can only be used to get string-type values
+2. An error will be returned for non-string-type keys
+3. nil is returned when the key does not exist (null in redisun)
+
+## References
+
+- [Redis GET Command Official Documentation](https://redis.io/docs/latest/commands/get/)

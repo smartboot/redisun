@@ -1,0 +1,70 @@
+---
+title: HELLO
+description: The Redis HELLO command is used to perform a handshake between the Redis server and client, negotiate the RESP protocol version, and perform authentication.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The HELLO command is used to perform a handshake between the Redis server and client. It also allows clients to negotiate the RESP protocol version used and perform authentication.
+
+### Redis Native Command Syntax
+
+<Code code={`HELLO [protover [AUTH username password] [SETNAME clientname]]`} lang="bash" />
+
+**Parameter Description**
+
+- **protover**: The RESP protocol version to negotiate (2 or 3)
+- **AUTH username password**: Optional authentication information
+- **SETNAME clientname**: Set client name
+
+### Detailed Explanation
+
+The HELLO command is a modern handshake command introduced in Redis 6.0, used to replace the old AUTH and SELECT command combination. It provides a standardized way to:
+
+1. Negotiate the RESP (Redis Serialization Protocol) version used between client and server
+2. Perform authentication
+3. Set client name
+
+#### RESP Protocol Versions
+
+Redis supports two RESP protocol versions:
+- RESP2: Protocol version introduced in Redis 2.0
+- RESP3: Protocol version introduced in Redis 6.0, providing richer data type support
+
+#### Authentication
+
+The HELLO command can perform authentication directly during the handshake process, avoiding the need to send AUTH commands separately.
+
+#### Setting Client Name
+
+The SETNAME option can be used to set a name for the client connection, facilitating server-side management and monitoring.
+
+## Redisun Usage
+
+In redisun, the HELLO command is implemented through the [HelloCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HelloCommand.java) class, but it usually does not need to be called directly, as the client automatically executes the HELLO command when the connection is established.
+
+### Direct Use of HelloCommand
+
+<Code code={`Redisun redisun = new Redisun(); // Using default configuration
+// The HELLO command will be executed automatically, no manual call needed`} lang="java" />
+
+### Using Authentication
+
+Authentication information is configured through RedisunOptions:
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setUsername("myuser");
+    options.setPassword("mypassword");
+});`} lang="java" />
+
+## Notes
+
+1. The HELLO command is available in Redis 6.0 and above
+2. Clients usually automatically execute the HELLO command when the connection is established
+3. Authentication through the HELLO command is more efficient than using the AUTH command separately
+
+## References
+
+- [Redis HELLO Command Official Documentation](https://redis.io/docs/latest/commands/hello/)

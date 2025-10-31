@@ -9,15 +9,14 @@
 
 Redisun 是一个基于 [smart-socket](https://gitee.com/smartboot/smart-socket) 开发的轻量级 Redis 客户端，专为 Java 平台设计，支持异步非阻塞 I/O 操作，提供高性能的 Redis 连接和命令执行能力。
 
+🚀Redisun 正在不断扩展对 Redis 命令的支持。完整的命令列表和支持情况请参阅我们的  [查看已支持的命令列表](https://smartboot.tech/redisun/guides/about/#redis-命令支持情况) 页面。
+
 ## 特性
 
-- **轻量级设计**：核心代码仅由少量类组成，jar包仅33KB，资源占用极小
-- **高性能通信**：基于 smart-socket Java AIO 实现，单线程处理能力强，资源消耗低
-- **连接复用技术**：创新的连接复用机制，一个连接可同时处理多个并发请求
-- **RESP 协议支持**：完整支持 Redis 序列化协议（RESP），兼容 Redis 服务器
-- **命令扩展机制**：提供简单易用的命令扩展接口，方便添加自定义 Redis 命令
-- **多数据库支持**：支持 Redis 多数据库切换
-- **认证支持**：支持 Redis 服务器的用户名/密码认证
+- **轻量级**：核心代码仅由少量类组成，jar包仅50KB
+- **高性能**：基于 smart-socket Java AIO 实现，单线程处理能力强
+- **连接复用**：一个连接可同时处理多个并发请求
+- **可扩展**：提供简单易用的命令扩展接口，方便添加自定义 Redis 命令
 
 ## 核心组件
 
@@ -122,18 +121,6 @@ Redisun redisun = Redisun.create(options -> {
 });
 ```
 
-## 支持的命令
-
-目前支持的 Redis 命令:
-
-- `HELLO` - 服务器握手和认证
-- `SET` - 设置键值对，支持多种选项（NX, XX, EX, PX, EXAT, PXAT, KEEPTTL）
-- `GET` - 获取键的值
-- `DEL` - 删除一个或多个键
-- `ZADD` - 向有序集合添加成员
-
-更多命令支持正在开发中，您也可以通过继承 [Command](src/main/java/tech/smartboot/redisun/Command.java) 类轻松扩展自定义命令。
-
 ## 构建与测试
 
 确保已安装 Maven，然后运行以下命令：
@@ -159,3 +146,9 @@ mvn test
 ## 联系方式
 
 如有问题或建议，请提交 issue 或联系项目维护者 [三刀](https://gitee.com/smartdms)。
+
+## 关注我们
+
+如果您对我们的项目感兴趣，欢迎关注我们的微信公众号，获取最新动态和技术分享。
+
+<img src="https://smartboot.tech/wx_dyh.png" width="20%">

@@ -1,0 +1,86 @@
+---
+title: ZSCORE
+description: Redis ZSCORE 命令用于返回有序集合中指定成员的分数。
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+ZSCORE 命令返回有序集合中指定成员的分数。如果成员不存在，则返回 nil。
+
+ZSCORE 命令的时间复杂度为 O(1)。
+
+### Redis 原生命令语法
+
+<Code code={`ZSCORE key member`} lang="bash" />
+
+**参数说明**
+
+- **key**: 有序集合的键
+- **member**: 成员名称
+
+### 详细说明
+
+ZSCORE 命令用于获取有序集合中指定成员的分数。如果成员不存在于有序集合中，则返回 nil。如果键不存在，也会返回 nil。
+
+#### 返回值
+
+- 如果成员存在，返回其分数（字符串形式）
+- 如果成员不存在或键不存在，返回 nil
+
+#### 示例
+
+<Code code={`redis> ZADD myzset 1 "one"
+(integer) 1
+redis> ZSCORE myzset "one"
+"1"
+redis> ZSCORE myzset "two"
+(nil)`} lang="bash" />
+
+## Redisun 使用方式
+
+在 redisun 中，ZSCORE 命令通过 [ZScoreCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/ZScoreCommand.java) 类和 Redisun 类中的 `zscore` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// 添加一些测试数据
+redisun.zadd("myzset", 1.0, "one");
+redisun.zadd("myzset", 2.5, "two");
+
+// 获取成员的分数
+Double score = redisun.zscore("myzset", "one");
+System.out.println("Score of 'one': " + score); // 输出: Score of 'one': 1.0
+
+// 获取不存在成员的分数
+Double nonExistentScore = redisun.zscore("myzset", "three");
+System.out.println("Score of 'three': " + nonExistentScore); // 输出: Score of 'three': null`} lang="java" />
+
+### 异步用法
+
+<Code code={`// 异步获取成员的分数
+CompletableFuture<Double> future = redisun.asyncZscore("myzset", "one");
+
+// 处理异步结果
+future.thenAccept(score -> {
+    if (score != null) {
+        System.out.println("Score: " + score);
+    } else {
+        System.out.println("Member not found");
+    }
+});`} lang="java" />
+
+## 注意事项
+
+1. 如果成员不存在，方法返回 null
+2. 如果键不存在，方法也返回 null
+3. 分数以 Double 类型返回
+
+## 参考资料
+
+- [Redis ZSCORE 命令官方文档](https://redis.io/docs/latest/commands/zscore/)

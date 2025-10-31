@@ -1,0 +1,49 @@
+---
+title: DBSIZE
+description: The Redis DBSIZE command is used to return the number of keys in the current database.
+sidebar:
+  order: 8
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The DBSIZE command returns the number of keys in the currently selected database. This command never fails, has a time complexity of O(1), and is a very fast operation.
+
+### Redis Native Command Syntax
+
+<Code code={`DBSIZE`} lang="bash" />
+
+**Parameter Description**
+
+The DBSIZE command takes no parameters.
+
+### Detailed Explanation
+
+The DBSIZE command returns the total number of keys in the currently selected Redis database. In Redis, there are 16 databases by default (numbered 0 to 15), and you can switch between them using the SELECT command.
+
+Each database is an independent namespace and can contain keys with the same name without conflict. The DBSIZE command only returns the number of keys in the currently selected database.
+
+## Redisun Usage
+
+In redisun, the DBSIZE command is implemented through the [DBSizeCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DBSizeCommand.java) class and the `dbsize` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Get the number of keys in the current database
+long keyCount = redisun.dbsize();
+System.out.println("Current database has " + keyCount + " keys");`} lang="java" />
+
+## Notes
+
+1. The DBSIZE command only counts keys in the currently selected database
+2. Different databases are independent namespaces
+3. The command has a time complexity of O(1) and executes very quickly
+
+## References
+
+- [Redis DBSIZE Command Official Documentation](https://redis.io/commands/dbsize/)

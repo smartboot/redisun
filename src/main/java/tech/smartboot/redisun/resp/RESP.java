@@ -35,6 +35,7 @@ public abstract class RESP<T> implements Serialization {
     public static final byte LF = '\n';  // 换行符
     public static final byte SP = ' ';   // 空格符
     public static final byte[] CRLF = new byte[]{CR, LF}; // 行终止符
+    public static final short CRLF_VALUE = (CR << 8) | LF;
 
     // RESP数据类型标识符
     // RESP2数据类型
@@ -55,6 +56,18 @@ public abstract class RESP<T> implements Serialization {
     public static final byte RESP_DATA_TYPE_SET = '~';           // 集合 (RESP3)
     public static final byte RESP_DATA_TYPE_ATTRIBUTE = '|';     // 属性 (RESP3)
     public static final byte RESP_DATA_TYPE_PUSH = '>';          // 推送消息 (RESP3)
+
+    private static final byte[][] FAST_INT_WRITE = new byte[100][];
+
+    static {
+        for (int i = 0; i < FAST_INT_WRITE.length; i++) {
+            if (i < 10) {
+                FAST_INT_WRITE[i] = new byte[]{(byte) ('0' + i), RESP.CR, RESP.LF};
+            } else {
+                FAST_INT_WRITE[i] = new byte[]{(byte) ('0' + i / 10), (byte) ('0' + i % 10), RESP.CR, RESP.LF};
+            }
+        }
+    }
 
     // 响应值
     protected T value;
@@ -96,47 +109,35 @@ public abstract class RESP<T> implements Serialization {
     protected int readInt(ByteBuffer readBuffer) {
         int v = 0;
         readBuffer.mark();
-        while (readBuffer.hasRemaining()) {
+        while (readBuffer.remaining() >= 2) {
             byte b = readBuffer.get();
             if (b >= '0' && b <= '9') {
-                v = v * 10 + b - '0';
+                v = (v << 3) + (v << 1) + (b & 0x0f);
                 continue;
-            } else if (readBuffer.remaining() < 1) {//非完整包，正常退出
-                readBuffer.reset();
-                return -1;
             }
-            if (b == '\r' && readBuffer.get() == '\n') {
-                readBuffer.mark();
+            if (b == RESP.CR && readBuffer.get() == RESP.LF) {
                 return v;
             } else {
                 throw new RedisunException("数据格式错误");
             }
         }
+        readBuffer.reset();
         return -1;
     }
 
-    protected void writeInt(WriteBuffer out, int value) throws IOException {
-        // 处理特殊情况 0
-        if (value == 0) {
-            out.write('0');
-            return;
-        } else if (value == Integer.MIN_VALUE) {
-            out.write(new byte[]{'-', '2', '1', '4', '7', '4', '8', '3', '6', '4', '8'});
-            return;
-        } else if (value < 0) {
+    public static void writeInt(WriteBuffer out, int value) throws IOException {
+        if (value < 0) {
             out.write('-');
             value = -value;
         }
 
-        if (value < 10) {
-            out.write('0' + value);
-        } else if (value < 100) {
-            out.write('0' + value / 10);
-            out.write('0' + value % 10);
+        if (value < FAST_INT_WRITE.length) {
+            out.write(FAST_INT_WRITE[value]);
         } else if (value < 1000) {
             out.write('0' + value / 100);
             out.write('0' + value / 10 % 10);
             out.write('0' + value % 10);
+            out.write(RESP.CRLF);
         } else {
             // 用于存储转换后的数字字符
             byte[] buffer = new byte[10]; // 最大的 int 有 10 位
@@ -146,22 +147,26 @@ public abstract class RESP<T> implements Serialization {
                 value /= 10;
             }
             out.write(buffer, pos, buffer.length - pos);
+            out.write(RESP.CRLF);
         }
     }
 
     /**
      * 根据数据类型创建对应的RESP对象实例
      *
-     * @param type 数据类型标识符
+     * @param buffer 读缓冲区
      * @return 对应类型的RESP对象实例
      * @throws RedisunException 当不支持的数据类型时抛出异常
      */
-    public static RESP newInstance(byte type) {
+    public static RESP newInstance(ByteBuffer buffer) {
+        byte type = buffer.get();
         switch (type) {
             case RESP_DATA_TYPE_INTEGER:
-                return new Integers();
+                return Integers.of(buffer);
+            case RESP_DATA_TYPE_DOUBLE:
+                return Doubles.of(buffer);
             case RESP_DATA_TYPE_STRING:
-                return new SimpleStrings();
+                return SimpleStrings.of(buffer);
             case RESP_DATA_TYPE_ARRAY:
                 return new Arrays();
             case RESP_DATA_TYPE_MAP:
@@ -187,6 +192,30 @@ public abstract class RESP<T> implements Serialization {
         BulkStrings bulkStringResponse = new BulkStrings();
         bulkStringResponse.setValue(value);
         return bulkStringResponse;
+    }
+
+    public static BulkStrings ofString(final byte[] bytes) {
+        BulkStrings bulkStringResponse = new BulkStrings() {
+            @Override
+            public void writeTo(WriteBuffer writeBuffer) throws IOException {
+                // 写入Bulk String类型标识符
+                writeBuffer.write(RESP_DATA_TYPE_BULK);
+                // 写入字符串长度
+                writeInt(writeBuffer, bytes.length);
+                // 写入字符串数据
+                writeBuffer.write(bytes);
+                // 写入行终止符
+                writeBuffer.write(CRLF);
+            }
+
+        };
+        return bulkStringResponse;
+    }
+
+    public static Integers ofInteger(int value) {
+        Integers integers = new Integers();
+        integers.setValue(value);
+        return integers;
     }
 
     /**

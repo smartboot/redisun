@@ -1,0 +1,56 @@
+---
+title: DEL
+description: The Redis DEL command is used to delete one or more specified keys. Non-existent keys are ignored.
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The DEL command is used to delete one or more specified keys. Non-existent keys are ignored. The time complexity of the DEL command is O(N), where N is the number of keys to be deleted. When the key to be deleted holds a value other than a string, the individual complexity of that key is O(M), where M is the number of elements in the list, set, sorted set, or hash. The time complexity of deleting a single key holding a string value is O(1).
+
+### Redis Native Command Syntax
+
+<Code code={`DEL key [key ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key(s) to delete, multiple keys can be specified
+
+### Detailed Explanation
+
+The DEL command is used to delete the specified keys and their associated values from the Redis database. If the specified keys do not exist, the DEL command ignores these keys without generating an error.
+
+The DEL command is applicable to keys of different data types, including strings, lists, sets, sorted sets, and hashes.
+
+## Redisun Usage
+
+In redisun, the DEL command is implemented through the [DelCommand](https://github.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DelCommand.java) class and the `del` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+});
+
+// Delete a single key
+int deletedCount = redisun.del("mykey");
+
+// Delete multiple keys (array form)
+int deletedCount = redisun.del("key1", "key2", "key3");
+
+// Delete multiple keys (list form)
+List<String> keys = Arrays.asList("key1", "key2", "key3");
+int deletedCount = redisun.del(keys);`} lang="java" />
+
+## Notes
+
+1. The DEL command immediately deletes the specified keys and releases related memory
+2. Non-existent keys are ignored and not counted in the deletion count
+3. The DEL command is applicable to keys of all data types
+4. For large data structures, the DEL command may block the server for a period of time
+
+## References
+
+- [Redis DEL Command Official Documentation](https://redis.io/docs/latest/commands/del/)

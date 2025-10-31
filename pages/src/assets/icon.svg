@@ -1,0 +1,7 @@
+<svg width="200" height="200" viewBox="100 100 200 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Minimalist Redisun Logo 2 -->
+    <rect x="100" y="100" width="200" height="200" rx="40" fill="#8B0000"/>
+    <circle cx="200" cy="200" r="60" fill="#FFA500"/>
+    <text x="200" y="230" font-family="Arial, sans-serif" font-weight="bold" font-size="80"
+          text-anchor="middle" fill="white">R</text>
+</svg>

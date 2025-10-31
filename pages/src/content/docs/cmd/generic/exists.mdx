@@ -1,0 +1,56 @@
+---
+title: EXISTS
+description: Redis EXISTS 命令用于检查给定键是否存在。
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Redis `EXISTS` 命令用于检查给定键是否存在。
+
+### Redis 原生命令语法
+
+<Code code={`EXISTS key [key ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要检查是否存在的键，可以指定多个键
+
+### 详细说明
+
+`EXISTS` 命令检查一个或多个键是否存在。从 Redis 3.0.3 版本开始，可以指定多个键。
+
+如果指定单个键，命令返回 1 表示键存在，0 表示键不存在。
+如果指定多个键，命令返回存在的键的数量。
+
+## Redisun 使用方式
+
+在 redisun 中，EXISTS 命令通过 ExistsCommand 类和 Redisun 类中的 exists 方法实现。
+
+### 同步方式
+
+<Code code={`// 检查单个键是否存在
+int exists = redisun.exists("mykey");
+
+// 检查多个键是否存在
+int exists = redisun.exists("mykey1", "mykey2", "mykey3");`} lang="java" />
+
+### 异步方式
+
+<Code code={`// 检查单个键是否存在
+CompletableFuture<Integer> future = redisun.asyncExists("mykey");
+
+// 检查多个键是否存在
+CompletableFuture<Integer> future = redisun.asyncExists("mykey1", "mykey2", "mykey3");`} lang="java" />
+
+## 注意事项
+
+1. `EXISTS` 命令的时间复杂度为 O(1)。
+2. 该命令适用于所有类型的键，包括字符串、哈希、列表、集合和有序集合等。
+3. 如果键已过期并被删除，`EXISTS` 命令将返回 0。
+4. 从 Redis 3.0.3 开始，可以一次性检查多个键，返回存在的键的数量。
+
+## 参考资料
+
+- [Redis EXISTS 命令官方文档](https://redis.io/commands/exists/)

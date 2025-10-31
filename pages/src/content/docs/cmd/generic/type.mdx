@@ -1,0 +1,55 @@
+---
+title: TYPE
+description: 获取键存储值的类型
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+获取键存储值的类型。
+
+### Redis原生命令语法
+
+<Code code={`TYPE key`} lang="bash" />
+
+**参数说明**
+
+- **key**: 要查询类型的键
+
+### 详细说明
+
+TYPE 命令返回键存储值的类型。Redis 支持多种数据类型，包括字符串（string）、列表（list）、集合（set）、有序集合（zset）、哈希（hash）等。
+
+#### 返回值
+
+返回键存储值的类型字符串：
+- `string`：字符串类型
+- `list`：列表类型
+- `set`：集合类型
+- `zset`：有序集合类型
+- `hash`：哈希类型
+- `none`：键不存在
+
+#### 时间复杂度
+
+O(1)
+
+## Redisun使用方式
+
+```java
+// 同步方式
+String type = redisun.type("mykey");
+
+// 异步方式
+CompletableFuture<String> future = redisun.asyncType("mykey");
+```
+
+**注意事项**
+
+- TYPE 命令仅返回键存储值的类型，不返回值本身
+- 对于不存在的键，TYPE 命令返回 "none"
+
+**参考资料**
+
+- [Redis TYPE Command](https://redis.io/commands/type/)

@@ -1,0 +1,60 @@
+---
+title: SELECT
+description: Redis SELECT 命令用于切换到指定的数据库，默认提供 16 个数据库。
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+SELECT 命令用于选择具有指定从零开始的数字索引的 Redis 逻辑数据库。新连接总是使用数据库 0。
+
+SELECT 命令的时间复杂度为 O(1)，是一个非常快速的操作。
+
+### Redis 原生命令语法
+
+<Code code={`SELECT index`} lang="bash" />
+
+**参数说明**
+
+- **index**: 数据库索引（从0开始）
+
+### 详细说明
+
+Redis 数据库是一种命名空间形式：所有数据库仍然持久化在同一个 RDB/AOF 文件中。然而，不同的数据库可以有相同名称的键，像 FLUSHDB、SWAPDB 或 RANDOMKEY 这样的命令在特定数据库上工作。
+
+在实际应用中，Redis 数据库应该用于分离属于同一应用程序的不同键（如有需要），而不应该用于在单个 Redis 实例中运行多个不相关的应用程序。
+
+当使用 Redis 集群时，不能使用 SELECT 命令，因为 Redis 集群只支持数据库零。在 Redis 集群的情况下，拥有多个数据库将是无用的，并且是不必要的复杂性来源。在 Redis 集群设计和目标下，对单个数据库进行原子操作的命令将无法实现。
+
+由于当前选定的数据库是连接的属性，客户端应该跟踪当前选定的数据库并在重新连接时重新选择它。虽然没有命令可以查询当前连接中选定的数据库，但 CLIENT LIST 输出会显示每个客户端当前选定的数据库。
+
+## Redisun 使用方式
+
+在 redisun 中，SELECT 命令通过 [SelectCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SelectCommand.java) 类实现，但通常不需要直接调用，因为客户端会在连接建立时根据配置自动执行 SELECT 命令。
+
+### 配置数据库
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setHost("localhost");
+    options.setPort(6379);
+    options.setDatabase(1); // 自动执行 SELECT 1
+});`} lang="java" />
+
+### 手动执行 SELECT 命令
+
+如果需要在运行时切换数据库，可以通过直接执行命令的方式：
+
+<Code code={`// 注意：这种方式需要直接使用命令类，不是推荐的做法
+// 更好的方式是在创建客户端时指定数据库`} lang="java" />
+
+## 注意事项
+
+1. Redis 默认提供 16 个数据库（编号 0-15）
+2. 不同数据库之间是完全独立的命名空间
+3. 在 Redis 集群模式下，只能使用数据库 0
+4. 客户端应该在重新连接时重新选择数据库
+
+## 参考资料
+
+- [Redis SELECT 命令官方文档](https://redis.io/commands/select/)
