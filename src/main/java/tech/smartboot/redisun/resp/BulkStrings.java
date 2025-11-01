@@ -6,8 +6,6 @@ import tech.smartboot.redisun.RedisunException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 
 /**
  * RESP Bulk Strings 类型实现
@@ -113,14 +111,12 @@ public class BulkStrings extends RESP<String> {
                     // 缓冲区中数据不足，等待更多数据
                     return false;
                 }
-                int limit = readBuffer.limit();
-                readBuffer.limit(readBuffer.position() + length);
-                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(readBuffer);
-                readBuffer.limit(limit);
+                byte[] bytes = new byte[len];
+                readBuffer.get(bytes);
                 // 验证结束符
-                if (readBuffer.getShort() == CRLF_VALUE) {
+                if (bytes[bytes.length - 2] == CR && bytes[bytes.length - 1] == LF) {
                     // 设置解析结果值
-                    value = charBuffer.toString();
+                    value = new String(bytes, 0, len - 2);
                     return true;
                 }
                 throw new RuntimeException("invalid simple string");
@@ -163,16 +159,6 @@ public class BulkStrings extends RESP<String> {
                 throw new RedisunException("数据格式错误");
         }
         return false;
-    }
-
-    public static void main(String[] args) {
-        byte[] bytes = "Hello World".getBytes();
-        ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-        buffer.put(bytes);
-        buffer.flip();
-        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer);
-        String value = charBuffer.toString();
-        System.out.println(value);
     }
 
     /**
