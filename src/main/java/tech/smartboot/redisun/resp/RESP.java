@@ -160,6 +160,9 @@ public abstract class RESP<T> implements Serialization {
      */
     public static RESP newInstance(ByteBuffer buffer) {
         byte type = buffer.get();
+        if (type == RESP_DATA_TYPE_BULK) {
+            return new BulkStrings();
+        }
         switch (type) {
             case RESP_DATA_TYPE_INTEGER:
                 return Integers.of(buffer);
@@ -171,8 +174,6 @@ public abstract class RESP<T> implements Serialization {
                 return new Arrays();
             case RESP_DATA_TYPE_MAP:
                 return new Maps();
-            case RESP_DATA_TYPE_BULK:
-                return new BulkStrings();
             case RESP_DATA_TYPE_ERROR:
                 return new SimpleErrors();
             case RESP_DATA_TYPE_NULL:
