@@ -6,6 +6,8 @@ import tech.smartboot.redisun.RedisunException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 
 /**
  * RESP Bulk Strings 类型实现
@@ -44,7 +46,7 @@ public class BulkStrings extends RESP<String> {
 
     // 用于存储字符串数据的输出流，当字符串较长时使用
     private ByteArrayOutputStream out;
-    
+
     // 空字符串对应的输出流实例，用于优化空字符串处理
     private final static ByteArrayOutputStream EMPTY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
 
@@ -111,12 +113,14 @@ public class BulkStrings extends RESP<String> {
                     // 缓冲区中数据不足，等待更多数据
                     return false;
                 }
-                byte[] bytes = new byte[len];
-                readBuffer.get(bytes);
+                int limit = readBuffer.limit();
+                readBuffer.limit(readBuffer.position() + length);
+                CharBuffer charBuffer = StandardCharsets.UTF_8.decode(readBuffer);
+                readBuffer.limit(limit);
                 // 验证结束符
-                if (bytes[bytes.length - 2] == CR && bytes[bytes.length - 1] == LF) {
+                if (readBuffer.getShort() == CRLF_VALUE) {
                     // 设置解析结果值
-                    value = new String(bytes, 0, len - 2);
+                    value = charBuffer.toString();
                     return true;
                 }
                 throw new RuntimeException("invalid simple string");
@@ -159,6 +163,16 @@ public class BulkStrings extends RESP<String> {
                 throw new RedisunException("数据格式错误");
         }
         return false;
+    }
+
+    public static void main(String[] args) {
+        byte[] bytes = "Hello World".getBytes();
+        ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
+        buffer.put(bytes);
+        buffer.flip();
+        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer);
+        String value = charBuffer.toString();
+        System.out.println(value);
     }
 
     /**
@@ -210,7 +224,7 @@ public class BulkStrings extends RESP<String> {
         System.arraycopy(RESP.CRLF, 0, result, length.length + 1, 2);
         System.arraycopy(bytes, 0, result, length.length + 3, bytes.length);
         System.arraycopy(RESP.CRLF, 0, result, length.length + 3 + bytes.length, 2);
-        
+
         // 返回一个匿名BulkStrings子类实例，重写了writeTo方法以提高性能
         return new BulkStrings() {
             @Override
