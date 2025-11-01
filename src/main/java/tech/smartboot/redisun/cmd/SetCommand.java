@@ -46,6 +46,19 @@ public class SetCommand extends Command {
     private static final BulkStrings CONSTANTS_PX = BulkStrings.of("PX");
     private static final BulkStrings CONSTANTS_PXAT = BulkStrings.of("PXAT");
     private static final byte[] HEADER = new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK};
+    private static final byte[][] FAST_HEADER = new byte[][]{
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '0', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '1', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '2', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '4', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '5', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '6', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '7', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '8', '\r', '\n'},
+            new byte[]{RESP.RESP_DATA_TYPE_ARRAY, '3', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '3', '\r', '\n', 'S', 'E', 'T', '\r', '\n', RESP.RESP_DATA_TYPE_BULK, '9', '\r', '\n'},
+    };
+
     private static final byte[] PART = new byte[]{'\r', '\n', RESP.RESP_DATA_TYPE_BULK};
     // 要设置的键
     private final byte[] key;
@@ -100,8 +113,12 @@ public class SetCommand extends Command {
             super.writeTo(writeBuffer);
             return;
         }
-        writeBuffer.write(HEADER);
-        RESP.writeInt(writeBuffer, key.length);
+        if (key.length < FAST_HEADER.length) {
+            writeBuffer.write(FAST_HEADER[key.length]);
+        } else {
+            writeBuffer.write(HEADER);
+            RESP.writeInt(writeBuffer, key.length);
+        }
         writeBuffer.write(key);
         writeBuffer.write(PART);
         RESP.writeInt(writeBuffer, value.length);
