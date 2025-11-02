@@ -72,8 +72,8 @@ final class RedisSession {
     }
 
     public void writeCommand(CompletableFuture<RESP> future, Command command) throws IOException {
+        offerCount++;
         if (semaphore.tryAcquire()) {
-            offerCount++;
             pipeline.offer(future);
             command.writeTo(writeBuffer);
             Tuple tuple;
@@ -83,9 +83,8 @@ final class RedisSession {
             }
             writeBuffer.flush();
             semaphore.release();
-//            flush();
+            flush();
         } else {
-            offerCount++;
             commandQueue.offer(new Tuple(future, command));
         }
     }
