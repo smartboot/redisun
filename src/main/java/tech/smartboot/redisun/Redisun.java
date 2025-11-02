@@ -541,20 +541,7 @@ public final class Redisun {
                     future.thenRun(() -> multiplexClient.reuse(finalClient));
                 }
             }
-
-            int offerCount = redisSession.incrOfferCount();
-            int pollCount = redisSession.getPollCount();
-
-            synchronized (client) {
-                // 设置当前命令的future
-                redisSession.offer(future);
-                command.writeTo(session.writeBuffer());
-            }
-
-            // 刷新缓冲区，发送数据
-            if (offerCount == redisSession.getOfferCount() && pollCount == redisSession.getPollCount()) {
-                session.writeBuffer().flush();
-            }
+            redisSession.writeCommand(future, command);
         } catch (Throwable e) {
             // 发生异常时完成future
             if (client != null) {
