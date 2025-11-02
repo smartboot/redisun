@@ -96,7 +96,6 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
         } else {
             future.complete(msg);
         }
-        redisSession.flush();
     }
 
     /**
@@ -115,7 +114,7 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
             // 处理新建会话事件
             case NEW_SESSION: {
                 // 为新会话创建并绑定Redis会话对象
-                RedisSession redisSession = new RedisSession(session.writeBuffer());
+                RedisSession redisSession = new RedisSession();
                 session.setAttachment(redisSession);
             }
             break;

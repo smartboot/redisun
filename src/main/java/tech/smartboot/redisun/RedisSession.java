@@ -1,12 +1,9 @@
 package tech.smartboot.redisun;
 
-import org.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.resp.RESP;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Semaphore;
 
 /**
  * Redis会话管理类
@@ -39,14 +36,14 @@ final class RedisSession {
 
     private int offerCount = 0;
     private int pollCount = 0;
-    private final WriteBuffer writeBuffer;
 
-    public RedisSession(WriteBuffer writeBuffer) {
-        this.writeBuffer = writeBuffer;
+    public int incrOfferCount() {
+        return ++offerCount;
     }
 
-    private final ConcurrentLinkedQueue<Tuple> commandQueue = new ConcurrentLinkedQueue<>();
-    private final Semaphore semaphore = new Semaphore(1);
+    public int getOfferCount() {
+        return offerCount;
+    }
 
     /**
      * 获取正在解码的响应对象
@@ -71,41 +68,12 @@ final class RedisSession {
         return pipeline.poll();
     }
 
-    public void writeCommand(CompletableFuture<RESP> future, Command command) throws IOException {
-        offerCount++;
-        if (semaphore.tryAcquire()) {
-            pipeline.offer(future);
-            command.writeTo(writeBuffer);
-            Tuple tuple;
-            while ((tuple = commandQueue.poll()) != null) {
-                pipeline.offer(tuple.future);
-                tuple.command.writeTo(writeBuffer);
-            }
-            writeBuffer.flush();
-            semaphore.release();
-            flush();
-        } else {
-            commandQueue.offer(new Tuple(future, command));
-        }
+    public void offer(CompletableFuture<RESP> future) {
+        pipeline.offer(future);
     }
 
-    public void flush() {
-        if (commandQueue.isEmpty() || !semaphore.tryAcquire()) {
-            return;
-        }
-
-        try {
-            Tuple tuple;
-            while ((tuple = commandQueue.poll()) != null) {
-                pipeline.offer(tuple.future);
-                tuple.command.writeTo(writeBuffer);
-            }
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        } finally {
-            semaphore.release();
-        }
-
+    public int getPollCount() {
+        return pollCount;
     }
 
     int load() {
@@ -114,13 +82,4 @@ final class RedisSession {
         return size >= 0 ? size : -size;
     }
 
-    private static class Tuple {
-        private final CompletableFuture<RESP> future;
-        private final Command command;
-
-        public Tuple(CompletableFuture<RESP> future, Command command) {
-            this.future = future;
-            this.command = command;
-        }
-    }
 }
