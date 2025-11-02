@@ -98,7 +98,6 @@ final class RedisSession {
         try {
             Tuple tuple;
             while ((tuple = commandQueue.poll()) != null) {
-                offerCount++;
                 pipeline.offer(tuple.future);
                 tuple.command.writeTo(writeBuffer);
             }
