@@ -85,6 +85,10 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
     public void process0(AioSession session, RESP msg) {
         // 获取当前会话关联的Redis会话对象
         RedisSession redisSession = session.getAttachment();
+        if (redisSession.isPubSub()){
+            redisSession.getPubSub().handleMessage(msg);
+            return;
+        }
         CompletableFuture<RESP> future = redisSession.poll();
         if (future == null) {
             // 如果没有等待的CompletableFuture，则将消息记录为错误并返回
@@ -128,6 +132,11 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
             }
             case SESSION_CLOSED: {
                 RedisSession redisSession = session.getAttachment();
+                if (redisSession.isPubSub()){
+                    // 通知订阅会话
+                    redisSession.getPubSub().onSessionClosed(throwable);
+                    break;
+                }
                 CompletableFuture<RESP> future;
                 while ((future = redisSession.poll()) != null) {
                     future.completeExceptionally(new RedisunException("session closed"));
