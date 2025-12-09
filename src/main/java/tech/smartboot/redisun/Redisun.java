@@ -4,37 +4,7 @@ import org.smartboot.socket.buffer.BufferPagePool;
 import org.smartboot.socket.extension.multiplex.MultiplexClient;
 import org.smartboot.socket.transport.AioQuickClient;
 import org.smartboot.socket.transport.AioSession;
-import tech.smartboot.redisun.cmd.AppendCommand;
-import tech.smartboot.redisun.cmd.DBSizeCommand;
-import tech.smartboot.redisun.cmd.DecrByCommand;
-import tech.smartboot.redisun.cmd.DecrCommand;
-import tech.smartboot.redisun.cmd.DelCommand;
-import tech.smartboot.redisun.cmd.ExistsCommand;
-import tech.smartboot.redisun.cmd.ExpireCommand;
-import tech.smartboot.redisun.cmd.FlushAllCommand;
-import tech.smartboot.redisun.cmd.FlushDbCommand;
-import tech.smartboot.redisun.cmd.GetCommand;
-import tech.smartboot.redisun.cmd.HGetCommand;
-import tech.smartboot.redisun.cmd.HSetCommand;
-import tech.smartboot.redisun.cmd.HelloCommand;
-import tech.smartboot.redisun.cmd.IncrByCommand;
-import tech.smartboot.redisun.cmd.IncrCommand;
-import tech.smartboot.redisun.cmd.LPopCommand;
-import tech.smartboot.redisun.cmd.LPushCommand;
-import tech.smartboot.redisun.cmd.MGetCommand;
-import tech.smartboot.redisun.cmd.MSetCommand;
-import tech.smartboot.redisun.cmd.RPopCommand;
-import tech.smartboot.redisun.cmd.RPushCommand;
-import tech.smartboot.redisun.cmd.SAddCommand;
-import tech.smartboot.redisun.cmd.SelectCommand;
-import tech.smartboot.redisun.cmd.SetCommand;
-import tech.smartboot.redisun.cmd.StrlenCommand;
-import tech.smartboot.redisun.cmd.TtlCommand;
-import tech.smartboot.redisun.cmd.TypeCommand;
-import tech.smartboot.redisun.cmd.ZAddCommand;
-import tech.smartboot.redisun.cmd.ZRangeCommand;
-import tech.smartboot.redisun.cmd.ZRemCommand;
-import tech.smartboot.redisun.cmd.ZScoreCommand;
+import tech.smartboot.redisun.cmd.*;
 import tech.smartboot.redisun.resp.Arrays;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.Doubles;
@@ -253,8 +223,8 @@ public final class Redisun {
             options.accept(cmd);
         }
         return execute(cmd).thenApply(resp -> {
-            if (resp instanceof tech.smartboot.redisun.resp.Arrays) {
-                List<RESP> resps = ((tech.smartboot.redisun.resp.Arrays) resp).getValue();
+            if (resp instanceof Arrays) {
+                List<RESP> resps = ((Arrays) resp).getValue();
                 List<ZRangeCommand.Tuple> result = new ArrayList<>(resps.size());
                 for (RESP r : resps) {
                     ZRangeCommand.Tuple tuple = new ZRangeCommand.Tuple();
@@ -425,8 +395,8 @@ public final class Redisun {
      */
     public CompletableFuture<List<String>> asyncMget(List<String> keys) {
         return execute(new MGetCommand(keys)).thenApply(resp -> {
-            if (resp instanceof tech.smartboot.redisun.resp.Arrays) {
-                List<RESP> resps = ((tech.smartboot.redisun.resp.Arrays) resp).getValue();
+            if (resp instanceof Arrays) {
+                List<RESP> resps = ((Arrays) resp).getValue();
                 List<String> result = new ArrayList<>(resps.size());
                 for (RESP r : resps) {
                     if (r instanceof Nulls) {
@@ -1172,5 +1142,109 @@ public final class Redisun {
             }
             throw new RedisunException("invalid response:" + resp);
         });
+    }
+
+    /**
+     * 发布消息到指定频道
+     *
+     * @param channel 频道名称
+     * @param message 要发布的消息
+     * @return 接收到此消息的客户端数量
+     */
+    public int publish(String channel, String message) {
+        try {
+            return asyncPublish(channel, message).get();
+        } catch (Exception e) {
+            throw new RedisunException(e);
+        }
+    }
+
+    /**
+     * 异步发布消息到指定频道
+     *
+     * @param channel 频道名称
+     * @param message 要发布的消息
+     * @return 接收到此消息的客户端数量
+     */
+    public CompletableFuture<Integer> asyncPublish(String channel, String message) {
+        return execute(new PublishCommand(channel, message)).thenApply(resp -> {
+            if (resp instanceof Integers) {
+                return ((Integers) resp).getValue();
+            }
+            throw new RedisunException("invalid response:" + resp);
+        });
+    }
+
+    /**
+     * 订阅给定的一个或多个频道
+     * 注意：一旦进入订阅状态，连接就不能用于执行其他命令，直到取消订阅
+     *
+     * @param pubsub   消息回调处理类
+     * @param channels 要订阅的频道列表
+     * @return 订阅对象
+     */
+    public RedisunPubSub subscribe(RedisunPubSub pubsub, String... channels) {
+        // 获取零负载的连接，用于独占连接
+        AioQuickClient client = findFirstZeroLoadClient();
+        client.connectTimeout(0);
+        AioSession session = client.getSession();
+        RedisSession redisSession = session.getAttachment();
+        redisSession.setPubSub(pubsub);
+        // 设置取消订阅回调
+        pubsub.setUnsubscribe(uChannels -> {
+            try {
+                new UnsubscribeCommand(uChannels).writeTo(session.writeBuffer());
+                session.writeBuffer().flush();
+            } catch (IOException e) {
+                throw new RedisunException(e);
+            }
+        });
+        // 设置异常关闭时继续订阅
+        pubsub.setSubscribe(this::subscribe);
+        // 设置释放连接回调
+        pubsub.setReleaseClient(() -> {
+            multiplexClient.release(client);
+            redisSession.setPubSub(null);
+        });
+        // 执行订阅命令
+        try {
+            new SubscribeCommand(channels).writeTo(session.writeBuffer());
+            session.writeBuffer().flush();
+        } catch (IOException e) {
+            multiplexClient.release(client);
+            redisSession.setPubSub(null);
+            throw new RuntimeException(e);
+        }
+        return pubsub;
+    }
+
+    /**
+     * 寻找一个零负载的连接
+     * @return 零负载的连接
+     */
+    private AioQuickClient findFirstZeroLoadClient() {
+        List<AioQuickClient> nonZeroClients = new ArrayList<>();
+        try {
+            while (true) {
+                AioQuickClient client = multiplexClient.acquire();
+                AioSession session = client.getSession();
+                RedisSession redisSession = session.getAttachment();
+                if (redisSession.load() == 0) {
+                    // 找到零负载连接，先把其他连接归还
+                    for (int i = nonZeroClients.size() - 1; i >= 0; i--) {
+                        multiplexClient.reuse(nonZeroClients.get(i));
+                    }
+                    if (client != currentClient) {
+                        return client;
+                    }
+                }
+                nonZeroClients.add(client);
+            }
+        } catch (Throwable e) {
+            for (AioQuickClient c : nonZeroClients) {
+                multiplexClient.reuse(c);
+            }
+            throw new RedisunException(e);
+        }
     }
 }

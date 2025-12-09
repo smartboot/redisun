@@ -37,6 +37,11 @@ final class RedisSession {
     private int offerCount = 0;
     private int pollCount = 0;
 
+    /**
+     * 订阅会话
+     */
+    private volatile RedisunPubSub pubSub;
+
     public int incrOfferCount() {
         return ++offerCount;
     }
@@ -82,4 +87,19 @@ final class RedisSession {
         return size >= 0 ? size : -size;
     }
 
+    /**
+     * 设置订阅会话
+     * @param pubSub 订阅会话
+     */
+    void setPubSub(RedisunPubSub pubSub) {
+        this.pubSub = pubSub;
+    }
+
+    RedisunPubSub getPubSub() {
+        return pubSub;
+    }
+
+    boolean isPubSub() {
+        return this.pubSub != null;
+    }
 }

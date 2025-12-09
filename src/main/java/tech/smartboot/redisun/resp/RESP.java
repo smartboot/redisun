@@ -171,6 +171,7 @@ public abstract class RESP<T> implements Serialization {
             case RESP_DATA_TYPE_STRING:
                 return SimpleStrings.of(buffer);
             case RESP_DATA_TYPE_ARRAY:
+            case RESP_DATA_TYPE_PUSH:
                 return new Arrays();
             case RESP_DATA_TYPE_MAP:
                 return new Maps();
