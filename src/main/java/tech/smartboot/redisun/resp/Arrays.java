@@ -90,7 +90,8 @@ public final class Arrays extends RESP<List<RESP>> {
                     if (item == null) {
                         // 创建新的元素对象
                         item = RESP.newInstance(readBuffer);
-                    } else if (item.decode(readBuffer)) {
+                    }
+                    if (item.decode(readBuffer)) {
                         // 元素解析完成，添加到数组中
                         value.add(item);
                         item = null;
