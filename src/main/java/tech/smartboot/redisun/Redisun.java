@@ -23,6 +23,8 @@ import tech.smartboot.redisun.cmd.LPopCommand;
 import tech.smartboot.redisun.cmd.LPushCommand;
 import tech.smartboot.redisun.cmd.MGetCommand;
 import tech.smartboot.redisun.cmd.MSetCommand;
+import tech.smartboot.redisun.cmd.PSubscribeCommand;
+import tech.smartboot.redisun.cmd.PUnsubscribeCommand;
 import tech.smartboot.redisun.cmd.PublishCommand;
 import tech.smartboot.redisun.cmd.RPopCommand;
 import tech.smartboot.redisun.cmd.RPushCommand;
@@ -83,6 +85,9 @@ public final class Redisun {
     private final BufferPagePool bufferPagePool = new BufferPagePool(Runtime.getRuntime().availableProcessors(), true);
     private volatile AioQuickClient currentClient;
 
+    /**
+     * 处理 Redis 的订阅和发布功能
+     */
     private volatile RedisunPubSub pubSub;
 
     /**
@@ -625,7 +630,6 @@ public final class Redisun {
             throw new RedisunException("invalid response:" + resp);
         });
     }
-
 
     /**
      * 关闭Redisun客户端，释放资源
@@ -1223,6 +1227,9 @@ public final class Redisun {
                         currentClient = null;
                     }
                     pubSub = new RedisunPubSub(this, client);
+                    AioSession session = client.getSession();
+                    RedisSession redisSession = session.getAttachment();
+                    redisSession.setPubSub(pubSub);
                 }
             }
         }
@@ -1231,11 +1238,18 @@ public final class Redisun {
 
     void releasePubSub() {
         synchronized (RedisunPubSub.class) {
+            if (pubSub == null) {
+                return;
+            }
             multiplexClient.reuse(pubSub.getClient());
             pubSub = null;
         }
     }
 
+    /**
+     * 取消订阅给定的一个或多个频道
+     * @param channels 要取消订阅的频道列表，如果为空则取消所有 频道订阅
+     */
     public void unsubscribe(String... channels) {
         try {
             if (pubSub == null) {
@@ -1254,28 +1268,23 @@ public final class Redisun {
 
     /**
      * 订阅给定的一个或多个频道
-     * 注意：一旦进入订阅状态，连接就不能用于执行其他命令，直到取消订阅
+     * 注意：一个 Redisun 对象只分配一个TCP连接进行订阅
      *
      * @param pubsub   消息回调处理类
      * @param channels 要订阅的频道列表
-     * @return 订阅对象
      */
     public void subscribe(Subscriber pubsub, String... channels) {
         if (channels == null || channels.length == 0) {
             throw new RedisunException("Channels must not be null or empty");
         }
-        
         if (pubsub == null) {
             throw new RedisunException("Subscriber must not be null");
         }
-        
         try {
             RedisunPubSub redisunPubSub = redisunPubSub();
             redisunPubSub.subscribe(pubsub, channels);
             AioSession session = redisunPubSub.getClient().getSession();
-            RedisSession redisSession = session.getAttachment();
-            redisSession.setPubSub(redisunPubSub);
-            // 执行订阅命令
+            // 执行频道订阅命令
             synchronized (redisunPubSub.getClient()) {
                 new SubscribeCommand(channels).writeTo(session.writeBuffer());
             }
@@ -1285,4 +1294,51 @@ public final class Redisun {
         }
     }
 
+    /**
+     * 订阅给定的一个或多个频道的模式
+     * 注意：一个 Redisun 对象只分配一个TCP连接进行订阅
+     *
+     * @param pubsub   模式匹配消息回调处理类
+     * @param patterns 要订阅的频道模式列表（支持通配符 * 和 ?）
+     */
+    public void pSubscribe(Subscriber pubsub, String... patterns) {
+        if (patterns == null || patterns.length == 0) {
+            throw new RedisunException("Patterns must not be null or empty");
+        }
+        if (pubsub == null) {
+            throw new RedisunException("PSubscribe must not be null");
+        }
+        try {
+            RedisunPubSub redisunPubSub = redisunPubSub();
+            redisunPubSub.pSubscribe(pubsub, patterns);
+            AioSession session = redisunPubSub.getClient().getSession();
+            // 执行模式订阅命令
+            synchronized (redisunPubSub.getClient()) {
+                new PSubscribeCommand(patterns).writeTo(session.writeBuffer());
+            }
+            session.writeBuffer().flush();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
+        }
+    }
+
+    /**
+     * 取消订阅给定的一个或多个频道的模式
+     * @param patterns 要取消订阅的模式列表，如果为空则取消所有 模式订阅
+     */
+    public void pUnsubscribe(String... patterns) {
+        try {
+            if (pubSub == null) {
+                return;
+            }
+            AioSession session = pubSub.getClient().getSession();
+            // 执行订阅命令
+            synchronized (pubSub.getClient()) {
+                new PUnsubscribeCommand(patterns).writeTo(session.writeBuffer());
+            }
+            session.writeBuffer().flush();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
+        }
+    }
 }

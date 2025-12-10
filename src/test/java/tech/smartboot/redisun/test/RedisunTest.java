@@ -1315,4 +1315,34 @@ public class RedisunTest {
         System.out.println("Channel3 总共收到消息数: " + receivedMessages.get(channel3).size());
     }
 
+    /**
+     * 模式订阅的测试用例，取消订阅
+     */
+    @Test
+    public void testPUnsubscribe() throws InterruptedException {
+        System.out.println("\n=== 测试模式订阅 ===");
+        final StringBuilder receivedChannel = new StringBuilder();
+        redisun.pSubscribe((channel, message) -> {
+                    receivedChannel.append(channel);
+                    System.out.println("订阅消息：" + channel + message);
+                },
+                "channel:*");
+        Thread.sleep(2000);
+
+        String channel = "channel:123";
+        int publish = redisun.publish(channel, "你好");
+        Assert.assertEquals(1, publish);
+        Thread.sleep(1000);
+
+        System.out.println("=== 测试取消模式订阅 ===");
+        redisun.pUnsubscribe("channel:*");
+        Thread.sleep(1000);
+
+        publish = redisun.publish("channel:456", "你好");
+        Assert.assertEquals(0, publish);
+        Assert.assertEquals(channel, receivedChannel.toString());
+        System.out.println("=== 测试总结 ===");
+        System.out.println("模式订阅测试通过！");
+    }
+
 }
