@@ -1261,6 +1261,14 @@ public final class Redisun {
      * @return 订阅对象
      */
     public void subscribe(Subscriber pubsub, String... channels) {
+        if (channels == null || channels.length == 0) {
+            throw new RedisunException("Channels must not be null or empty");
+        }
+        
+        if (pubsub == null) {
+            throw new RedisunException("Subscriber must not be null");
+        }
+        
         try {
             RedisunPubSub redisunPubSub = redisunPubSub();
             redisunPubSub.subscribe(pubsub, channels);

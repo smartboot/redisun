@@ -28,4 +28,12 @@ public interface Subscriber {
      * @param message 消息内容
      */
     void onMessage(String channel, String message);
+
+    /**
+     * 当订阅连接出现错误时的回调方法
+     *
+     * @param throwable 错误信息
+     */
+    default void onError(Throwable throwable) {
+    }
 }

@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author dufuzhong
  * @version v1.0 2025-12-07
  */
-@SuppressWarnings({"unused", "rawtypes"})
 class RedisunPubSub {
 
     private final Map<String, Subscriber> subscribers = new ConcurrentHashMap<>();
@@ -78,6 +77,24 @@ class RedisunPubSub {
         if (close) {
             return;
         }
+        
+        // 通知所有订阅者发生错误
+        for (Subscriber subscriber : subscribers.values()) {
+            try {
+                subscriber.onError(ex);
+            } catch (Exception e) {
+                // 忽略订阅者内部错误
+            }
+        }
+        
+        for (Subscriber subscriber : pending.values()) {
+            try {
+                subscriber.onError(ex);
+            } catch (Exception e) {
+                // 忽略订阅者内部错误
+            }
+        }
+        
         Map<Subscriber, Set<String>> oldSubscribers = new ConcurrentHashMap<>();
         for (Map.Entry<String, Subscriber> entry : subscribers.entrySet()) {
             Set<String> keys = oldSubscribers.computeIfAbsent(entry.getValue(), k -> new HashSet<>());
@@ -108,7 +125,10 @@ class RedisunPubSub {
         String message = ((BulkStrings) messageResp).getValue();
         // 调用订阅回调
         try {
-            subscribers.get(channel).onMessage(channel, message);
+            Subscriber subscriber = subscribers.get(channel);
+            if (subscriber != null) {
+                subscriber.onMessage(channel, message);
+            }
         } catch (Exception e) {
             System.err.println("Error handling message push: " + e.getMessage());
         }
@@ -126,19 +146,33 @@ class RedisunPubSub {
         String channel = ((BulkStrings) channelResp).getValue();
         if ("subscribe".equals(messageType)) {
             Subscriber subscriber = pending.remove(channel);
-            subscribers.put(channel, subscriber);
-            subscriber.onSubscribe(channel);
+            if (subscriber != null) {
+                subscribers.put(channel, subscriber);
+                try {
+                    subscriber.onSubscribe(channel);
+                } catch (Exception e) {
+                    System.err.println("Error in onSubscribe callback: " + e.getMessage());
+                }
+            }
             return;
         }
         if ("unsubscribe".equals(messageType)) {
             Subscriber subscriber = subscribers.remove(channel);
             if (subscriber != null) {
-                subscriber.onUnsubscribe(channel);
+                try {
+                    subscriber.onUnsubscribe(channel);
+                } catch (Exception e) {
+                    System.err.println("Error in onUnsubscribe callback: " + e.getMessage());
+                }
             }
 
             subscriber = pending.remove(channel);
             if (subscriber != null) {
-                subscriber.onUnsubscribe(channel);
+                try {
+                    subscriber.onUnsubscribe(channel);
+                } catch (Exception e) {
+                    System.err.println("Error in onUnsubscribe callback: " + e.getMessage());
+                }
             }
             // 如果订阅列表为空，则释放订阅资源
             if (subscribers.isEmpty() && pending.isEmpty()) {
