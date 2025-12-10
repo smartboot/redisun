@@ -89,6 +89,7 @@ final class RedisSession {
 
     /**
      * 设置订阅会话
+     *
      * @param pubSub 订阅会话
      */
     void setPubSub(RedisunPubSub pubSub) {
@@ -99,7 +100,4 @@ final class RedisSession {
         return pubSub;
     }
 
-    boolean isPubSub() {
-        return this.pubSub != null;
-    }
 }

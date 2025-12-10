@@ -85,14 +85,19 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
     public void process0(AioSession session, RESP msg) {
         // 获取当前会话关联的Redis会话对象
         RedisSession redisSession = session.getAttachment();
-        if (redisSession.isPubSub()) {
+        RedisunPubSub pubSub = redisSession.getPubSub();
+        if (pubSub != null && pubSub.isSubscribed()) {
             redisSession.getPubSub().handleMessage(msg);
             return;
         }
         CompletableFuture<RESP> future = redisSession.poll();
         if (future == null) {
-            // 如果没有等待的CompletableFuture，则将消息记录为错误并返回
-            System.err.println("No waiting future for response: " + msg);
+            if (pubSub != null) {
+                redisSession.getPubSub().handleMessage(msg);
+            } else {
+                // 如果没有等待的CompletableFuture，则将消息记录为错误并返回
+                System.err.println("No waiting future for response: " + msg);
+            }
             return;
         }
         if (msg instanceof SimpleErrors) {
@@ -137,7 +142,8 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
                     future.completeExceptionally(new RedisunException("session closed"));
                 }
                 // 如果是订阅会话，则重新订阅
-                if (redisSession.isPubSub()) {
+                RedisunPubSub pubSub = redisSession.getPubSub();
+                if (pubSub != null) {
                     // 通知订阅会话
                     redisSession.getPubSub().resubscribe(throwable);
                 }

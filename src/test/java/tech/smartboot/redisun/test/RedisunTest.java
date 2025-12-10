@@ -945,7 +945,7 @@ public class RedisunTest {
             }
         }, "a", "b");
         redisun.publish("a", "hello");
-        Thread.sleep(Short.MAX_VALUE);
+//        Thread.sleep(Short.MAX_VALUE);
     }
 
     @Test
@@ -1260,7 +1260,7 @@ public class RedisunTest {
         // 测试部分取消订阅
         System.out.println("\n=== 测试部分取消订阅 ===");
         subscriber.unsubscribe(channel2); // 只取消 channel2
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // 再次发布消息
         String msg7 = "Message 3 to channel1";

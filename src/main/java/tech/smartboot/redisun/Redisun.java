@@ -83,7 +83,7 @@ public final class Redisun {
     private final BufferPagePool bufferPagePool = new BufferPagePool(Runtime.getRuntime().availableProcessors(), true);
     private volatile AioQuickClient currentClient;
 
-    private RedisunPubSub pubSub;
+    private volatile RedisunPubSub pubSub;
 
     /**
      * 创建Redisun客户端实例的工厂方法
@@ -529,7 +529,7 @@ public final class Redisun {
                         client = null;
                     }
                 } else {
-                    // session无效
+                    // session 无效
                     currentClient = null;
                     client = null;
                 }
@@ -631,6 +631,9 @@ public final class Redisun {
      * 关闭Redisun客户端，释放资源
      */
     public void close() {
+        if (pubSub != null) {
+            pubSub.close();
+        }
         multiplexClient.close();
         if (group != null) {
             group.shutdown();
@@ -1215,6 +1218,10 @@ public final class Redisun {
             synchronized (RedisunPubSub.class) {
                 if (pubSub == null) {
                     AioQuickClient client = multiplexClient.acquire();
+                    //避免处于订阅状态的会话被占用
+                    if (client == currentClient) {
+                        currentClient = null;
+                    }
                     pubSub = new RedisunPubSub(this, client);
                 }
             }
@@ -1222,17 +1229,26 @@ public final class Redisun {
         return pubSub;
     }
 
+    void releasePubSub() {
+        synchronized (RedisunPubSub.class) {
+            multiplexClient.reuse(pubSub.getClient());
+            pubSub = null;
+        }
+    }
+
     public void unsubscribe(String... channels) {
         try {
-            RedisunPubSub redisunPubSub = redisunPubSub();
-            AioSession session = redisunPubSub.getClient().getSession();
+            if (pubSub == null) {
+                return;
+            }
+            AioSession session = pubSub.getClient().getSession();
             // 执行订阅命令
-            synchronized (redisunPubSub.getClient()) {
+            synchronized (pubSub.getClient()) {
                 new UnsubscribeCommand(channels).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
-            throw new RuntimeException(e);
+            throw new RedisunException(e);
         }
     }
 
@@ -1248,31 +1264,16 @@ public final class Redisun {
         try {
             RedisunPubSub redisunPubSub = redisunPubSub();
             redisunPubSub.subscribe(pubsub, channels);
-            AioQuickClient client = multiplexClient.acquire();
-            AioSession session = client.getSession();
+            AioSession session = redisunPubSub.getClient().getSession();
             RedisSession redisSession = session.getAttachment();
             redisSession.setPubSub(redisunPubSub);
-//            // 设置异常关闭时继续订阅
-//            pubsub.setSubscribe(new BiConsumer<RedisunPubSub, String[]>() {
-//                @Override
-//                public void accept(RedisunPubSub redisunPubSub, String[] strings) {
-//                    if (!multiplexClient.isClosed()) {
-//                        subscribe(redisunPubSub, strings);
-//                    }
-//                }
-//            });
-            // 设置释放连接回调
-//            pubsub.setReleaseClient(() -> {
-//                multiplexClient.release(client);
-//                redisSession.setPubSub(null);
-//            });
             // 执行订阅命令
-            synchronized (client) {
+            synchronized (redisunPubSub.getClient()) {
                 new SubscribeCommand(channels).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
-            e.printStackTrace();
+            throw new RedisunException(e);
         }
     }
 

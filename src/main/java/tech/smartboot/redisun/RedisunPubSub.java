@@ -9,8 +9,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * Redis 发布订阅 (pub/sub) 是一种消息通信模式：发送者 (pub) 发送消息，订阅者 (sub) 接收消息。
@@ -20,20 +18,14 @@ import java.util.function.Consumer;
  * @version v1.0 2025-12-07
  */
 @SuppressWarnings({"unused", "rawtypes"})
-public class RedisunPubSub {
-    // 订阅频道
-    private final Set<String> channels = ConcurrentHashMap.newKeySet();
-    // 取消订阅
-    private Consumer<String[]> unsubscribe;
-    // 关闭Redis连接
-    private Runnable releaseClient;
-    // 网络异常重新订阅
-    private BiConsumer<RedisunPubSub, String[]> subscribe;
+class RedisunPubSub {
 
-    private Map<String, Subscriber> subscribers = new ConcurrentHashMap<>();
-    private Map<String, Subscriber> pending = new ConcurrentHashMap<>();
+    private final Map<String, Subscriber> subscribers = new ConcurrentHashMap<>();
+    private final Map<String, Subscriber> pending = new ConcurrentHashMap<>();
     private final Redisun redisun;
-    private AioQuickClient client;
+    private final AioQuickClient client;
+    private boolean close = false;
+    private boolean subscribed = false;
 
     public RedisunPubSub(Redisun redisun, AioQuickClient client) {
         this.redisun = redisun;
@@ -48,48 +40,6 @@ public class RedisunPubSub {
         for (String channel : channels) {
             pending.put(channel, pubsub);
         }
-    }
-
-    void resubscribe() {
-
-    }
-
-
-    /**
-     * 异常关闭处理方法
-     *
-     * @param channels 订阅的频道列表
-     * @param ex       异常信息
-     * @return 是否需要重新订阅 (true:重新订阅)
-     */
-    public boolean resubscribe(String[] channels, Throwable ex) {
-        return true;
-    }
-
-
-    /**
-     * 取消订阅当前订阅的所有频道
-     * 注意：此方法会关闭订阅连接
-     */
-    public void unsubscribeAll() {
-        unsubscribe.accept(new String[0]);
-    }
-
-    /**
-     * 取消订阅指定的频道
-     *
-     * @param channels 要取消订阅的频道列表
-     */
-    public void unsubscribe(String... channels) {
-        unsubscribe.accept(channels);
-    }
-
-    void setReleaseClient(Runnable releaseClient) {
-        this.releaseClient = releaseClient;
-    }
-
-    void setSubscribe(BiConsumer<RedisunPubSub, String[]> subscribe) {
-        this.subscribe = subscribe;
     }
 
     /**
@@ -110,6 +60,7 @@ public class RedisunPubSub {
             System.err.println("Invalid message type");
             return;
         }
+        subscribed = true;
         String messageType = ((BulkStrings) messageTypeResp).getValue();
 
         // 接收来自服务器的发布消息
@@ -124,6 +75,9 @@ public class RedisunPubSub {
     }
 
     void resubscribe(Throwable ex) {
+        if (close) {
+            return;
+        }
         Map<Subscriber, Set<String>> oldSubscribers = new ConcurrentHashMap<>();
         for (Map.Entry<String, Subscriber> entry : subscribers.entrySet()) {
             Set<String> keys = oldSubscribers.computeIfAbsent(entry.getValue(), k -> new HashSet<>());
@@ -133,6 +87,8 @@ public class RedisunPubSub {
             Set<String> keys = oldSubscribers.computeIfAbsent(entry.getValue(), k -> new HashSet<>());
             keys.add(entry.getKey());
         }
+        // 重新订阅
+        redisun.releasePubSub();
         for (Map.Entry<Subscriber, Set<String>> entry : oldSubscribers.entrySet()) {
             redisun.subscribe(entry.getKey(), entry.getValue().toArray(new String[0]));
         }
@@ -184,7 +140,25 @@ public class RedisunPubSub {
             if (subscriber != null) {
                 subscriber.onUnsubscribe(channel);
             }
+            // 如果订阅列表为空，则释放订阅资源
+            if (subscribers.isEmpty() && pending.isEmpty()) {
+                redisun.releasePubSub();
+            }
         }
+    }
+
+    public boolean isSubscribed() {
+        return subscribed;
+    }
+
+    /**
+     * 释放订阅资源
+     */
+    public void close() {
+        close = true;
+        subscribers.clear();
+        pending.clear();
+        redisun.releasePubSub();
     }
 
 }
