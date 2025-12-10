@@ -23,8 +23,6 @@ import tech.smartboot.redisun.cmd.LPopCommand;
 import tech.smartboot.redisun.cmd.LPushCommand;
 import tech.smartboot.redisun.cmd.MGetCommand;
 import tech.smartboot.redisun.cmd.MSetCommand;
-import tech.smartboot.redisun.cmd.PSubscribeCommand;
-import tech.smartboot.redisun.cmd.PUnsubscribeCommand;
 import tech.smartboot.redisun.cmd.PublishCommand;
 import tech.smartboot.redisun.cmd.RPopCommand;
 import tech.smartboot.redisun.cmd.RPushCommand;
@@ -1217,33 +1215,30 @@ public final class Redisun {
         });
     }
 
-    private RedisunPubSub redisunPubSub() throws Throwable {
+    private synchronized RedisunPubSub redisunPubSub() throws Throwable {
         if (pubSub == null) {
-            synchronized (RedisunPubSub.class) {
-                if (pubSub == null) {
-                    AioQuickClient client = multiplexClient.acquire();
-                    //避免处于订阅状态的会话被占用
-                    if (client == currentClient) {
-                        currentClient = null;
-                    }
-                    pubSub = new RedisunPubSub(this, client);
-                    AioSession session = client.getSession();
-                    RedisSession redisSession = session.getAttachment();
-                    redisSession.setPubSub(pubSub);
-                }
+            AioQuickClient client = multiplexClient.acquire();
+            //避免处于订阅状态的会话被占用
+            if (client == currentClient) {
+                currentClient = null;
             }
+            pubSub = new RedisunPubSub(this, client);
+            AioSession session = client.getSession();
+            RedisSession redisSession = session.getAttachment();
+            redisSession.setPubSub(pubSub);
         }
         return pubSub;
     }
 
-    void releasePubSub() {
-        synchronized (RedisunPubSub.class) {
-            if (pubSub == null) {
-                return;
-            }
-            multiplexClient.reuse(pubSub.getClient());
-            pubSub = null;
+    synchronized void releasePubSub() {
+        if (pubSub == null) {
+            return;
         }
+        AioSession session = pubSub.getClient().getSession();
+        RedisSession redisSession = session.getAttachment();
+        redisSession.setPubSub(null);
+        multiplexClient.reuse(pubSub.getClient());
+        pubSub = null;
     }
 
     /**
