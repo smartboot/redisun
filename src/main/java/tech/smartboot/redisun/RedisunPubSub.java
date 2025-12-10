@@ -1,9 +1,12 @@
 package tech.smartboot.redisun;
 
+import org.smartboot.socket.transport.AioQuickClient;
 import tech.smartboot.redisun.resp.Arrays;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.RESP;
 
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -11,13 +14,13 @@ import java.util.function.Consumer;
 
 /**
  * Redis 发布订阅 (pub/sub) 是一种消息通信模式：发送者 (pub) 发送消息，订阅者 (sub) 接收消息。
- *  Available since: Redis Open Source 2.0.0
+ * Available since: Redis Open Source 2.0.0
  *
  * @author dufuzhong
  * @version v1.0 2025-12-07
  */
 @SuppressWarnings({"unused", "rawtypes"})
-public abstract class RedisunPubSub {
+public class RedisunPubSub {
     // 订阅频道
     private final Set<String> channels = ConcurrentHashMap.newKeySet();
     // 取消订阅
@@ -27,42 +30,42 @@ public abstract class RedisunPubSub {
     // 网络异常重新订阅
     private BiConsumer<RedisunPubSub, String[]> subscribe;
 
-    /**
-     * 接收到订阅消息的回调方法
-     * @param channel 频道名称
-     * @param message 消息内容
-     */
-    public abstract void onMessage(String channel, String message);
+    private Map<String, Subscriber> subscribers = new ConcurrentHashMap<>();
+    private Map<String, Subscriber> pending = new ConcurrentHashMap<>();
+    private final Redisun redisun;
+    private AioQuickClient client;
 
-    /**
-     * 接收到订阅确认消息的回调方法
-     * @param channel 频道名称
-     */
-    public void onSubscribe(String channel){}
+    public RedisunPubSub(Redisun redisun, AioQuickClient client) {
+        this.redisun = redisun;
+        this.client = client;
+    }
 
-    /**
-     * 接收到取消订阅确认消息的回调方法
-     * @param channel 频道名称
-     */
-    public void onUnsubscribe(String channel){}
+    public AioQuickClient getClient() {
+        return client;
+    }
+
+    void subscribe(Subscriber pubsub, String... channels) {
+        for (String channel : channels) {
+            pending.put(channel, pubsub);
+        }
+    }
+
+    void resubscribe() {
+
+    }
+
 
     /**
      * 异常关闭处理方法
+     *
      * @param channels 订阅的频道列表
-     * @param ex 异常信息
+     * @param ex       异常信息
      * @return 是否需要重新订阅 (true:重新订阅)
      */
-    public boolean onSessionClosed(String[] channels, Throwable ex) {
+    public boolean resubscribe(String[] channels, Throwable ex) {
         return true;
     }
 
-    /**
-     * 设置取消订阅的回调方法
-     * (Redisun 类设置的)
-     */
-    void setUnsubscribe(Consumer<String[]> unsubscribe) {
-        this.unsubscribe = unsubscribe;
-    }
 
     /**
      * 取消订阅当前订阅的所有频道
@@ -71,9 +74,10 @@ public abstract class RedisunPubSub {
     public void unsubscribeAll() {
         unsubscribe.accept(new String[0]);
     }
-    
+
     /**
      * 取消订阅指定的频道
+     *
      * @param channels 要取消订阅的频道列表
      */
     public void unsubscribe(String... channels) {
@@ -119,31 +123,21 @@ public abstract class RedisunPubSub {
         }
     }
 
-    void onSessionClosed(Throwable ex){
-        String[] channelArray = getStrings();
-        channels.clear();
-        releaseClient.run();
-        // 主动关闭连接的不需要重新订阅和通知
-        if (ex == null || ex.getCause() == null || channelArray.length == 0) {
-            return;
+    void resubscribe(Throwable ex) {
+        Map<Subscriber, Set<String>> oldSubscribers = new ConcurrentHashMap<>();
+        for (Map.Entry<String, Subscriber> entry : subscribers.entrySet()) {
+            Set<String> keys = oldSubscribers.computeIfAbsent(entry.getValue(), k -> new HashSet<>());
+            keys.add(entry.getKey());
         }
-        try {
-            if (! this.onSessionClosed(channelArray, ex)){
-                return;
-            }
-        }catch (Exception e) {
-            System.err.println("Error handling closed exception: " + e.getMessage());
+        for (Map.Entry<String, Subscriber> entry : pending.entrySet()) {
+            Set<String> keys = oldSubscribers.computeIfAbsent(entry.getValue(), k -> new HashSet<>());
+            keys.add(entry.getKey());
         }
-        try {
-            subscribe.accept(this, channelArray);
-        }catch (Exception e) {
-            System.err.println("Error handling subscription confirmation: " + e.getMessage());
+        for (Map.Entry<Subscriber, Set<String>> entry : oldSubscribers.entrySet()) {
+            redisun.subscribe(entry.getKey(), entry.getValue().toArray(new String[0]));
         }
     }
 
-    public String[] getStrings() {
-        return channels.toArray(new String[0]);
-    }
 
     /**
      * 处理消息推送
@@ -158,7 +152,7 @@ public abstract class RedisunPubSub {
         String message = ((BulkStrings) messageResp).getValue();
         // 调用订阅回调
         try {
-            this.onMessage(channel, message);
+            subscribers.get(channel).onMessage(channel, message);
         } catch (Exception e) {
             System.err.println("Error handling message push: " + e.getMessage());
         }
@@ -174,26 +168,21 @@ public abstract class RedisunPubSub {
             return;
         }
         String channel = ((BulkStrings) channelResp).getValue();
-        if ("subscribe".equals(messageType)){
-            channels.add(channel);
-            try{
-                this.onSubscribe(channel);
-            } catch (Exception e) {
-                System.err.println("Error handling subscription confirmation: " + e.getMessage());
-            }
+        if ("subscribe".equals(messageType)) {
+            Subscriber subscriber = pending.remove(channel);
+            subscribers.put(channel, subscriber);
+            subscriber.onSubscribe(channel);
             return;
         }
         if ("unsubscribe".equals(messageType)) {
-            channels.remove(channel);
-            // 如果所有订阅都已取消，释放订阅连接
-            if (channels.isEmpty()) {
-                releaseClient.run();
+            Subscriber subscriber = subscribers.remove(channel);
+            if (subscriber != null) {
+                subscriber.onUnsubscribe(channel);
             }
-            // 调用取消订阅回调
-            try {
-                this.onUnsubscribe(channel);
-            }catch (Exception e) {
-                System.err.println("Error handling subscription confirmation: " + e.getMessage());
+
+            subscriber = pending.remove(channel);
+            if (subscriber != null) {
+                subscriber.onUnsubscribe(channel);
             }
         }
     }

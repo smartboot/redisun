@@ -6,7 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import tech.smartboot.redisun.Redisun;
 import tech.smartboot.redisun.RedisunException;
-import tech.smartboot.redisun.RedisunPubSub;
+import tech.smartboot.redisun.Subscriber;
 import tech.smartboot.redisun.cmd.ZRangeCommand;
 
 import java.util.Arrays;
@@ -937,23 +937,32 @@ public class RedisunTest {
     }
 
     @Test
+    public void testSubscrie() throws InterruptedException {
+        redisun.subscribe(new Subscriber() {
+            @Override
+            public void onMessage(String channel, String message) {
+                System.out.println("Received message: " + channel + " - " + message);
+            }
+        }, "a", "b");
+        redisun.publish("a", "hello");
+        Thread.sleep(Short.MAX_VALUE);
+    }
+
+    @Test
     public void testPubSubCommands() throws InterruptedException {
         String channel = topic + ":pubsub";
         String message = "Hello, Redisun!";
-        
+
         // 用于接收消息的变量
         final StringBuilder receivedMessage = new StringBuilder();
         final StringBuilder receivedChannel = new StringBuilder();
-        
+
         // 创建订阅者
-        RedisunPubSub pubsub = new RedisunPubSub() {
-            @Override
-            public void onMessage(String ch, String msg) {
-                receivedChannel.append(ch);
-                receivedMessage.append(msg);
-            }
+        Subscriber pubsub = (ch, msg) -> {
+            receivedChannel.append(ch);
+            receivedMessage.append(msg);
         };
-        
+
         // 启动一个线程进行订阅
         Thread subscribeThread = new Thread(() -> {
             // 创建新的Redisun实例用于订阅（因为订阅会独占连接）
@@ -967,40 +976,40 @@ public class RedisunTest {
                 // subscriber.close();
             }
         });
-        
+
         // 启动订阅线程
         subscribeThread.start();
-        
+
         // 等待订阅建立
         Thread.sleep(1000);
-        
+
         // 发布消息
         int receivers = redisun.publish(channel, message);
-        
+
         // 等待消息接收
         Thread.sleep(1000);
-        
+
         // 验证结果
         Assert.assertEquals(1, receivers); // 应该有一个接收者
         Assert.assertEquals(channel, receivedChannel.toString());
         Assert.assertEquals(message, receivedMessage.toString());
-        
+
         // 清理资源
         subscribeThread.interrupt();
     }
-    
+
     @Test
     public void testUnsubscribe() throws InterruptedException {
         String channel = topic + ":unsubscribe-test";
         String message1 = "Message 1";
         String message2 = "Message 2";
-        
+
         // 用于记录接收到的消息数量
         final java.util.concurrent.atomic.AtomicInteger messageCount = new java.util.concurrent.atomic.AtomicInteger(0);
         final StringBuilder receivedMessages = new StringBuilder();
-        
+
         // 创建订阅者
-        RedisunPubSub pubsub = new RedisunPubSub() {
+        Subscriber pubsub = new Subscriber() {
             @Override
             public void onMessage(String ch, String msg) {
                 messageCount.incrementAndGet();
@@ -1010,88 +1019,74 @@ public class RedisunTest {
                 receivedMessages.append(msg);
             }
         };
-        
+
         // 启动一个线程进行订阅
-        Thread subscribeThread = new Thread(() -> {
-            Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
-            try {
-                subscriber.subscribe(pubsub, channel);
-                // 保持订阅状态，等待中断
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                // 线程被中断，正常退出
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        
-        subscribeThread.start();
-        
+        Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
+        subscriber.subscribe(pubsub, channel);
+
         // 等待订阅建立
         Thread.sleep(1000);
-        
+
         // 发布第一条消息
         int receivers1 = redisun.publish(channel, message1);
         Thread.sleep(500);
         Assert.assertEquals(1, receivers1);
         Assert.assertEquals(1, messageCount.get());
-        
+
         // 取消订阅
-        pubsub.unsubscribe(channel);
+        subscriber.unsubscribe(channel);
         Thread.sleep(1000);
-        
+
         // 发布第二条消息，应该没有接收者
         int receivers2 = redisun.publish(channel, message2);
         Thread.sleep(500);
         Assert.assertEquals(0, receivers2); // 已经取消订阅，没有接收者
         Assert.assertEquals(1, messageCount.get()); // 仍然只有一条消息
-        
+
         // 验证只接收到了第一条消息
         Assert.assertEquals(message1, receivedMessages.toString());
-        
-        // 清理资源
-        subscribeThread.interrupt();
+
     }
-    
+
     @Test
     public void testMultipleSubscriptions() throws InterruptedException {
         String channel1 = topic + ":multi-sub-1";
         String channel2 = topic + ":multi-sub-2";
         String channel3 = topic + ":multi-sub-3";
-        
+
         // 用于记录每个频道接收到的消息
         final java.util.Map<String, java.util.List<String>> receivedMessages = new java.util.concurrent.ConcurrentHashMap<>();
         receivedMessages.put(channel1, new java.util.concurrent.CopyOnWriteArrayList<>());
         receivedMessages.put(channel2, new java.util.concurrent.CopyOnWriteArrayList<>());
         receivedMessages.put(channel3, new java.util.concurrent.CopyOnWriteArrayList<>());
-        
+
         // 创建第一个订阅者 - 订阅 channel1 和 channel2
-        RedisunPubSub pubsub1 = new RedisunPubSub() {
+        Subscriber pubsub1 = new Subscriber() {
             @Override
             public void onMessage(String ch, String msg) {
                 System.out.println("[PubSub1] Received: " + msg + " on " + ch);
                 receivedMessages.get(ch).add(msg);
             }
         };
-        
+
         // 创建第二个订阅者 - 订阅 channel2 和 channel3
-        RedisunPubSub pubsub2 = new RedisunPubSub() {
+        Subscriber pubsub2 = new Subscriber() {
             @Override
             public void onMessage(String ch, String msg) {
                 System.out.println("[PubSub2] Received: " + msg + " on " + ch);
                 receivedMessages.get(ch).add(msg);
             }
         };
-        
+
         // 创建第三个订阅者 - 只订阅 channel1
-        RedisunPubSub pubsub3 = new RedisunPubSub() {
+        Subscriber pubsub3 = new Subscriber() {
             @Override
             public void onMessage(String ch, String msg) {
                 System.out.println("[PubSub3] Received: " + msg + " on " + ch);
                 receivedMessages.get(ch).add(msg);
             }
         };
-        
+
         // 启动订阅线程1 - 使用同一个Redisun实例
         Thread thread1 = new Thread(() -> {
             Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
@@ -1104,7 +1099,7 @@ public class RedisunTest {
                 e.printStackTrace();
             }
         });
-        
+
         // 启动订阅线程2 - 使用同一个Redisun实例
         Thread thread2 = new Thread(() -> {
             Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
@@ -1117,27 +1112,17 @@ public class RedisunTest {
                 e.printStackTrace();
             }
         });
-        
+
         // 启动订阅线程3
-        Thread thread3 = new Thread(() -> {
-            Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-            try {
-                subscriber.subscribe(pubsub3, channel1);
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                // 正常退出
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        
+        Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        subscriber.subscribe(pubsub3, channel1);
+
         thread1.start();
         thread2.start();
-        thread3.start();
-        
+
         // 等待订阅建立
         Thread.sleep(1500);
-        
+
         // 发布消息到 channel1 - 应该被 pubsub1 和 pubsub3 接收
         String msg1 = "Message to channel1";
         int receivers1 = redisun.publish(channel1, msg1);
@@ -1146,7 +1131,7 @@ public class RedisunTest {
         Assert.assertEquals(2, receivers1); // pubsub1 和 pubsub3
         Assert.assertEquals(2, receivedMessages.get(channel1).size());
         Assert.assertTrue(receivedMessages.get(channel1).contains(msg1));
-        
+
         // 发布消息到 channel2 - 应该被 pubsub1 和 pubsub2 接收
         String msg2 = "Message to channel2";
         int receivers2 = redisun.publish(channel2, msg2);
@@ -1155,7 +1140,7 @@ public class RedisunTest {
         Assert.assertEquals(2, receivers2); // pubsub1 和 pubsub2
         Assert.assertEquals(2, receivedMessages.get(channel2).size());
         Assert.assertTrue(receivedMessages.get(channel2).contains(msg2));
-        
+
         // 发布消息到 channel3 - 应该只被 pubsub2 接收
         String msg3 = "Message to channel3";
         int receivers3 = redisun.publish(channel3, msg3);
@@ -1164,11 +1149,11 @@ public class RedisunTest {
         Assert.assertEquals(1, receivers3); // 只有 pubsub2
         Assert.assertEquals(1, receivedMessages.get(channel3).size());
         Assert.assertTrue(receivedMessages.get(channel3).contains(msg3));
-        
+
         // 测试取消订阅后的行为
-        pubsub1.unsubscribe(channel1); // pubsub1 取消订阅 channel1，但保留 channel2
+        subscriber.unsubscribe(channel1); // pubsub1 取消订阅 channel1，但保留 channel2
         Thread.sleep(1000);
-        
+
         // 再次发布到 channel1 - 现在应该只有 pubsub3 接收
         String msg4 = "Another message to channel1";
         int receivers4 = redisun.publish(channel1, msg4);
@@ -1176,7 +1161,7 @@ public class RedisunTest {
         System.out.println("Channel1 receivers after unsubscribe: " + receivers4);
         Assert.assertEquals(1, receivers4); // 只有 pubsub3
         Assert.assertEquals(3, receivedMessages.get(channel1).size()); // 之前2条 + 现在1条
-        
+
         // 发布到 channel2 - pubsub1 应该还能接收（只取消了 channel1）
         String msg5 = "Another message to channel2";
         int receivers5 = redisun.publish(channel2, msg5);
@@ -1184,60 +1169,48 @@ public class RedisunTest {
         System.out.println("Channel2 receivers: " + receivers5);
         Assert.assertEquals(2, receivers5); // pubsub1 和 pubsub2 都还在
         Assert.assertEquals(4, receivedMessages.get(channel2).size()); // 之前2条 + 现在2条
-        
+
         // 清理资源
         thread1.interrupt();
         thread2.interrupt();
-        thread3.interrupt();
-        
+
         System.out.println("\n=== 测试总结 ===");
         System.out.println("Channel1 收到消息数: " + receivedMessages.get(channel1).size());
         System.out.println("Channel2 收到消息数: " + receivedMessages.get(channel2).size());
         System.out.println("Channel3 收到消息数: " + receivedMessages.get(channel3).size());
     }
-    
+
     @Test
     public void testSingleConnectionMultipleChannels() throws InterruptedException {
         String channel1 = topic + ":single-conn-1";
         String channel2 = topic + ":single-conn-2";
         String channel3 = topic + ":single-conn-3";
-        
+
         // 用于记录每个频道接收到的消息
         final java.util.Map<String, java.util.List<String>> receivedMessages = new java.util.concurrent.ConcurrentHashMap<>();
         receivedMessages.put(channel1, new java.util.concurrent.CopyOnWriteArrayList<>());
         receivedMessages.put(channel2, new java.util.concurrent.CopyOnWriteArrayList<>());
         receivedMessages.put(channel3, new java.util.concurrent.CopyOnWriteArrayList<>());
-        
+
         // 创建单个订阅者 - 同时订阅三个频道
-        RedisunPubSub pubsub = new RedisunPubSub() {
+        Subscriber pubsub = new Subscriber() {
             @Override
             public void onMessage(String ch, String msg) {
                 System.out.println("[SinglePubSub] Received: " + msg + " on " + ch);
                 receivedMessages.get(ch).add(msg);
             }
         };
-        
+
         // 启动订阅线程 - 使用单个Redisun实例同时订阅三个频道
-        Thread subscribeThread = new Thread(() -> {
-            Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
-            try {
-                // 一次性订阅三个频道，使用同一个连接
-                subscriber.subscribe(pubsub, channel1, channel2, channel3);
-                Thread.sleep(15000);
-            } catch (InterruptedException e) {
-                // 正常退出
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        
-        subscribeThread.start();
-        
+        Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
+        // 一次性订阅三个频道，使用同一个连接
+        subscriber.subscribe(pubsub, channel1, channel2, channel3);
+
         // 等待订阅建立
         Thread.sleep(1500);
-        
+
         System.out.println("\n=== 开始发布消息到三个频道 ===");
-        
+
         // 发布消息到 channel1
         String msg1 = "Message 1 to channel1";
         int receivers1 = redisun.publish(channel1, msg1);
@@ -1246,7 +1219,7 @@ public class RedisunTest {
         Assert.assertEquals(1, receivers1);
         Assert.assertEquals(1, receivedMessages.get(channel1).size());
         Assert.assertTrue(receivedMessages.get(channel1).contains(msg1));
-        
+
         // 发布消息到 channel2
         String msg2 = "Message 1 to channel2";
         int receivers2 = redisun.publish(channel2, msg2);
@@ -1255,7 +1228,7 @@ public class RedisunTest {
         Assert.assertEquals(1, receivers2);
         Assert.assertEquals(1, receivedMessages.get(channel2).size());
         Assert.assertTrue(receivedMessages.get(channel2).contains(msg2));
-        
+
         // 发布消息到 channel3
         String msg3 = "Message 1 to channel3";
         int receivers3 = redisun.publish(channel3, msg3);
@@ -1264,18 +1237,18 @@ public class RedisunTest {
         Assert.assertEquals(1, receivers3);
         Assert.assertEquals(1, receivedMessages.get(channel3).size());
         Assert.assertTrue(receivedMessages.get(channel3).contains(msg3));
-        
+
         // 快速连续发布多条消息到不同频道，测试消息处理的正确性
         System.out.println("\n=== 快速连续发布消息 ===");
         String msg4 = "Message 2 to channel1";
         String msg5 = "Message 2 to channel2";
         String msg6 = "Message 2 to channel3";
-        
+
         redisun.publish(channel1, msg4);
         redisun.publish(channel2, msg5);
         redisun.publish(channel3, msg6);
         Thread.sleep(1000);
-        
+
         // 验证所有消息都正确接收
         Assert.assertEquals(2, receivedMessages.get(channel1).size());
         Assert.assertEquals(2, receivedMessages.get(channel2).size());
@@ -1283,60 +1256,58 @@ public class RedisunTest {
         Assert.assertTrue(receivedMessages.get(channel1).contains(msg4));
         Assert.assertTrue(receivedMessages.get(channel2).contains(msg5));
         Assert.assertTrue(receivedMessages.get(channel3).contains(msg6));
-        
+
         // 测试部分取消订阅
         System.out.println("\n=== 测试部分取消订阅 ===");
-        pubsub.unsubscribe(channel2); // 只取消 channel2
+        subscriber.unsubscribe(channel2); // 只取消 channel2
         Thread.sleep(1000);
-        
+
         // 再次发布消息
         String msg7 = "Message 3 to channel1";
         String msg8 = "Message 3 to channel2";
         String msg9 = "Message 3 to channel3";
-        
+
         int receivers7 = redisun.publish(channel1, msg7);
         int receivers8 = redisun.publish(channel2, msg8);
         int receivers9 = redisun.publish(channel3, msg9);
         Thread.sleep(1000);
-        
+
         // 验证：channel1 和 channel3 仍然接收，channel2 不再接收
         System.out.println("After unsubscribe channel2:");
         System.out.println("  Channel1 receivers: " + receivers7);
         System.out.println("  Channel2 receivers: " + receivers8);
         System.out.println("  Channel3 receivers: " + receivers9);
-        
+
         Assert.assertEquals(1, receivers7); // channel1 还在
         Assert.assertEquals(0, receivers8); // channel2 已取消
         Assert.assertEquals(1, receivers9); // channel3 还在
-        
+
         Assert.assertEquals(3, receivedMessages.get(channel1).size()); // 3条消息
         Assert.assertEquals(2, receivedMessages.get(channel2).size()); // 还是2条，没有新消息
         Assert.assertEquals(3, receivedMessages.get(channel3).size()); // 3条消息
-        
+
         // 测试取消所有订阅
         System.out.println("\n=== 测试取消所有剩余订阅 ===");
-        pubsub.unsubscribeAll(); // 取消所有订阅（channel1 和 channel3）
+        subscriber.unsubscribe(); // 取消所有订阅（channel1 和 channel3）
         Thread.sleep(1000);
-        
+
         // 再次发布消息，应该没有接收者
         int receivers10 = redisun.publish(channel1, "No one receives this");
         int receivers11 = redisun.publish(channel3, "No one receives this");
         Thread.sleep(500);
-        
+
         System.out.println("After unsubscribe all:");
         System.out.println("  Channel1 receivers: " + receivers10);
         System.out.println("  Channel3 receivers: " + receivers11);
-        
+
         Assert.assertEquals(0, receivers10);
         Assert.assertEquals(0, receivers11);
-        
+
         // 消息数量不变
         Assert.assertEquals(3, receivedMessages.get(channel1).size());
         Assert.assertEquals(3, receivedMessages.get(channel3).size());
-        
-        // 清理资源
-        subscribeThread.interrupt();
-        
+
+
         System.out.println("\n=== 测试总结 ===");
         System.out.println("单连接多频道订阅测试通过！");
         System.out.println("Channel1 总共收到消息数: " + receivedMessages.get(channel1).size());

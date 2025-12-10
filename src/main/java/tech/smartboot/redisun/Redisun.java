@@ -4,7 +4,40 @@ import org.smartboot.socket.buffer.BufferPagePool;
 import org.smartboot.socket.extension.multiplex.MultiplexClient;
 import org.smartboot.socket.transport.AioQuickClient;
 import org.smartboot.socket.transport.AioSession;
-import tech.smartboot.redisun.cmd.*;
+import tech.smartboot.redisun.cmd.AppendCommand;
+import tech.smartboot.redisun.cmd.DBSizeCommand;
+import tech.smartboot.redisun.cmd.DecrByCommand;
+import tech.smartboot.redisun.cmd.DecrCommand;
+import tech.smartboot.redisun.cmd.DelCommand;
+import tech.smartboot.redisun.cmd.ExistsCommand;
+import tech.smartboot.redisun.cmd.ExpireCommand;
+import tech.smartboot.redisun.cmd.FlushAllCommand;
+import tech.smartboot.redisun.cmd.FlushDbCommand;
+import tech.smartboot.redisun.cmd.GetCommand;
+import tech.smartboot.redisun.cmd.HGetCommand;
+import tech.smartboot.redisun.cmd.HSetCommand;
+import tech.smartboot.redisun.cmd.HelloCommand;
+import tech.smartboot.redisun.cmd.IncrByCommand;
+import tech.smartboot.redisun.cmd.IncrCommand;
+import tech.smartboot.redisun.cmd.LPopCommand;
+import tech.smartboot.redisun.cmd.LPushCommand;
+import tech.smartboot.redisun.cmd.MGetCommand;
+import tech.smartboot.redisun.cmd.MSetCommand;
+import tech.smartboot.redisun.cmd.PublishCommand;
+import tech.smartboot.redisun.cmd.RPopCommand;
+import tech.smartboot.redisun.cmd.RPushCommand;
+import tech.smartboot.redisun.cmd.SAddCommand;
+import tech.smartboot.redisun.cmd.SelectCommand;
+import tech.smartboot.redisun.cmd.SetCommand;
+import tech.smartboot.redisun.cmd.StrlenCommand;
+import tech.smartboot.redisun.cmd.SubscribeCommand;
+import tech.smartboot.redisun.cmd.TtlCommand;
+import tech.smartboot.redisun.cmd.TypeCommand;
+import tech.smartboot.redisun.cmd.UnsubscribeCommand;
+import tech.smartboot.redisun.cmd.ZAddCommand;
+import tech.smartboot.redisun.cmd.ZRangeCommand;
+import tech.smartboot.redisun.cmd.ZRemCommand;
+import tech.smartboot.redisun.cmd.ZScoreCommand;
 import tech.smartboot.redisun.resp.Arrays;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.Doubles;
@@ -49,6 +82,8 @@ public final class Redisun {
 
     private final BufferPagePool bufferPagePool = new BufferPagePool(Runtime.getRuntime().availableProcessors(), true);
     private volatile AioQuickClient currentClient;
+
+    private RedisunPubSub pubSub;
 
     /**
      * 创建Redisun客户端实例的工厂方法
@@ -1175,6 +1210,32 @@ public final class Redisun {
         });
     }
 
+    private RedisunPubSub redisunPubSub() throws Throwable {
+        if (pubSub == null) {
+            synchronized (RedisunPubSub.class) {
+                if (pubSub == null) {
+                    AioQuickClient client = multiplexClient.acquire();
+                    pubSub = new RedisunPubSub(this, client);
+                }
+            }
+        }
+        return pubSub;
+    }
+
+    public void unsubscribe(String... channels) {
+        try {
+            RedisunPubSub redisunPubSub = redisunPubSub();
+            AioSession session = redisunPubSub.getClient().getSession();
+            // 执行订阅命令
+            synchronized (redisunPubSub.getClient()) {
+                new UnsubscribeCommand(channels).writeTo(session.writeBuffer());
+            }
+            session.writeBuffer().flush();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * 订阅给定的一个或多个频道
      * 注意：一旦进入订阅状态，连接就不能用于执行其他命令，直到取消订阅
@@ -1183,68 +1244,36 @@ public final class Redisun {
      * @param channels 要订阅的频道列表
      * @return 订阅对象
      */
-    public RedisunPubSub subscribe(RedisunPubSub pubsub, String... channels) {
-        // 获取零负载的连接，用于独占连接
-        AioQuickClient client = findFirstZeroLoadClient();
-        client.connectTimeout(0);
-        AioSession session = client.getSession();
-        RedisSession redisSession = session.getAttachment();
-        redisSession.setPubSub(pubsub);
-        // 设置取消订阅回调
-        pubsub.setUnsubscribe(uChannels -> {
-            try {
-                new UnsubscribeCommand(uChannels).writeTo(session.writeBuffer());
-                session.writeBuffer().flush();
-            } catch (IOException e) {
-                throw new RedisunException(e);
-            }
-        });
-        // 设置异常关闭时继续订阅
-        pubsub.setSubscribe(this::subscribe);
-        // 设置释放连接回调
-        pubsub.setReleaseClient(() -> {
-            multiplexClient.release(client);
-            redisSession.setPubSub(null);
-        });
-        // 执行订阅命令
+    public void subscribe(Subscriber pubsub, String... channels) {
         try {
-            new SubscribeCommand(channels).writeTo(session.writeBuffer());
+            RedisunPubSub redisunPubSub = redisunPubSub();
+            redisunPubSub.subscribe(pubsub, channels);
+            AioQuickClient client = multiplexClient.acquire();
+            AioSession session = client.getSession();
+            RedisSession redisSession = session.getAttachment();
+            redisSession.setPubSub(redisunPubSub);
+//            // 设置异常关闭时继续订阅
+//            pubsub.setSubscribe(new BiConsumer<RedisunPubSub, String[]>() {
+//                @Override
+//                public void accept(RedisunPubSub redisunPubSub, String[] strings) {
+//                    if (!multiplexClient.isClosed()) {
+//                        subscribe(redisunPubSub, strings);
+//                    }
+//                }
+//            });
+            // 设置释放连接回调
+//            pubsub.setReleaseClient(() -> {
+//                multiplexClient.release(client);
+//                redisSession.setPubSub(null);
+//            });
+            // 执行订阅命令
+            synchronized (client) {
+                new SubscribeCommand(channels).writeTo(session.writeBuffer());
+            }
             session.writeBuffer().flush();
-        } catch (IOException e) {
-            multiplexClient.release(client);
-            redisSession.setPubSub(null);
-            throw new RuntimeException(e);
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
-        return pubsub;
     }
 
-    /**
-     * 寻找一个零负载的连接
-     * @return 零负载的连接
-     */
-    private AioQuickClient findFirstZeroLoadClient() {
-        List<AioQuickClient> nonZeroClients = new ArrayList<>();
-        try {
-            while (true) {
-                AioQuickClient client = multiplexClient.acquire();
-                AioSession session = client.getSession();
-                RedisSession redisSession = session.getAttachment();
-                if (redisSession.load() == 0) {
-                    // 找到零负载连接，先把其他连接归还
-                    for (int i = nonZeroClients.size() - 1; i >= 0; i--) {
-                        multiplexClient.reuse(nonZeroClients.get(i));
-                    }
-                    if (client != currentClient) {
-                        return client;
-                    }
-                }
-                nonZeroClients.add(client);
-            }
-        } catch (Throwable e) {
-            for (AioQuickClient c : nonZeroClients) {
-                multiplexClient.reuse(c);
-            }
-            throw new RedisunException(e);
-        }
-    }
 }
