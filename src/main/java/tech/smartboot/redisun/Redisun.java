@@ -1213,30 +1213,24 @@ public final class Redisun {
         });
     }
 
-    private RedisunPubSub redisunPubSub() throws Throwable {
+    private synchronized RedisunPubSub redisunPubSub() throws Throwable {
         if (pubSub == null) {
-            synchronized (RedisunPubSub.class) {
-                if (pubSub == null) {
-                    AioQuickClient client = multiplexClient.acquire();
-                    //避免处于订阅状态的会话被占用
-                    if (client == currentClient) {
-                        currentClient = null;
-                    }
-                    pubSub = new RedisunPubSub(this, client);
-                }
+            AioQuickClient client = multiplexClient.acquire();
+            //避免处于订阅状态的会话被占用
+            if (client == currentClient) {
+                currentClient = null;
             }
+            pubSub = new RedisunPubSub(this, client);
         }
         return pubSub;
     }
 
-    void releasePubSub() {
-        synchronized (RedisunPubSub.class) {
-            AioSession session = pubSub.getClient().getSession();
-            RedisSession redisSession = session.getAttachment();
-            redisSession.setPubSub(null);
-            multiplexClient.reuse(pubSub.getClient());
-            pubSub = null;
-        }
+    synchronized void releasePubSub() {
+        AioSession session = pubSub.getClient().getSession();
+        RedisSession redisSession = session.getAttachment();
+        redisSession.setPubSub(null);
+        multiplexClient.reuse(pubSub.getClient());
+        pubSub = null;
     }
 
     public void unsubscribe(String... channels) {
