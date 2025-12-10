@@ -1,0 +1,103 @@
+---
+title: SUBSCRIBE
+description: Redis SUBSCRIBE 命令用于监听指定频道的消息。
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+SUBSCRIBE 命令用于监听指定频道的消息。客户端进入订阅状态后，只能接收 PUBLISH 命令推送的消息，不能再发送除 SUBSCRIBE、UNSUBSCRIBE、PSUBSCRIBE 和 PUNSUBSCRIBE 之外的其他命令。
+
+### Redis 原生命令语法
+
+<Code code={`SUBSCRIBE channel [channel ...]`} lang="bash" />
+
+**参数说明**
+
+- **channel**: 一个或多个要订阅的频道名称
+
+### 详细说明
+
+SUBSCRIBE 命令用于订阅给定的一个或多个频道。一旦客户端进入订阅状态，它就只能接收以下几种类型的命令回复：
+
+1. 由 PUBLISH 命令推送的消息
+2. SUBSCRIBE 和 UNSUBSCRIBE 命令的结果
+
+在订阅状态下，客户端不能发送除 SUBSCRIBE、UNSUBSCRIBE、PSUBSCRIBE 和 PUNSUBSCRIBE 之外的其他命令。
+
+#### 消息格式
+
+当有消息被发布到客户端订阅的频道时，客户端会收到一个包含三个元素的数组回复：
+
+1. 第一个元素是 "message" 字符串
+2. 第二个元素是产生消息的频道名称
+3. 第三个元素是实际的消息内容
+
+#### 订阅确认
+
+当客户端成功订阅频道时，会收到一个包含三个元素的数组回复：
+
+1. 第一个元素是 "subscribe" 字符串
+2. 第二个元素是被订阅的频道名称
+3. 第三个元素是客户端当前订阅的频道数量
+
+## Redisun 使用方式
+
+在 Redisun 中，SUBSCRIBE 功能通过 [SubscribeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SubscribeCommand.java) 类和 Redisun 类中的 `subscribe` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 创建订阅者
+Subscriber subscriber = new Subscriber() {
+    @Override
+    public void onMessage(String channel, String message) {
+        System.out.println("Received message: " + message + " from channel: " + channel);
+    }
+    
+    @Override
+    public void onSubscribe(String channel) {
+        System.out.println("Subscribed to channel: " + channel);
+    }
+    
+    @Override
+    public void onUnsubscribe(String channel) {
+        System.out.println("Unsubscribed from channel: " + channel);
+    }
+    
+    @Override
+    public void onError(Throwable throwable) {
+        System.err.println("Subscription error: " + throwable.getMessage());
+    }
+};
+
+// 订阅频道
+redisun.subscribe(subscriber, "channel1", "channel2");
+
+// 在其他地方发布消息
+// redisun.publish("channel1", "Hello World!");`} lang="java" />
+
+### Subscriber 接口详解
+
+Redisun 中的订阅功能通过 [Subscriber](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Subscriber.java) 接口实现，该接口提供了以下几个回调方法：
+
+- **onSubscribe(String channel)**: 当成功订阅频道时调用
+- **onUnsubscribe(String channel)**: 当成功取消订阅频道时调用
+- **onMessage(String channel, String message)**: 当接收到频道消息时调用
+- **onError(Throwable throwable)**: 当订阅连接出现错误时调用
+
+### 注意事项
+
+1. 订阅连接是独占的，一旦进入订阅状态，该连接就不能用于执行其他命令
+2. 如果需要同时执行普通命令和订阅操作，应该创建多个 Redisun 实例
+3. 订阅者应该处理好异常情况，避免因为回调异常导致整个订阅系统崩溃
+4. 订阅连接具有自动重连机制，当连接断开时会尝试重新订阅之前的频道
+5. 在实际应用中，订阅者通常运行在一个独立的线程或进程中
+
+## 参考资料
+
+- [Redis SUBSCRIBE 命令官方文档](https://redis.io/commands/subscribe/)

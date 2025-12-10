@@ -150,6 +150,13 @@ export default defineConfig({
                             autogenerate: {directory: 'cmd/hash'},
                         },
                         {
+                            label: '发布/订阅',
+                            translations: {
+                                'en': 'Pub/Sub',
+                            },
+                            autogenerate: {directory: 'cmd/pubsub'},
+                        },
+                        {
                             label: '其他',
                             translations: {
                                 'en': 'Other',

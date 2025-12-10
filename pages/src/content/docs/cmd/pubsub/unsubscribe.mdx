@@ -1,0 +1,62 @@
+---
+title: UNSUBSCRIBE
+description: Redis UNSUBSCRIBE 命令用于取消订阅指定的频道。
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+UNSUBSCRIBE 命令用于取消订阅指定的频道。如果没有提供频道名称，则取消订阅所有频道。
+
+### Redis 原生命令语法
+
+<Code code={`UNSUBSCRIBE [channel [channel ...]]`} lang="bash" />
+
+**参数说明**
+
+- **channel**: 可选参数，一个或多个要取消订阅的频道名称。如果不指定任何频道，则取消订阅所有频道。
+
+### 详细说明
+
+UNSUBSCRIBE 命令用于取消客户端之前通过 SUBSCRIBE 命令订阅的一个或多个频道。当客户端不再需要接收特定频道的消息时，可以使用此命令取消订阅。
+
+#### 消息格式
+
+当客户端成功取消订阅频道时，会收到一个包含三个元素的数组回复：
+
+1. 第一个元素是 "unsubscribe" 字符串
+2. 第二个元素是被取消订阅的频道名称
+3. 第三个元素是客户端当前订阅的频道数量
+
+如果客户端在执行 UNSUBSCRIBE 命令后不再订阅任何频道，它将从订阅状态中退出，并可以发送任何类型的命令。
+
+## Redisun 使用方式
+
+在 Redisun 中，UNSUBSCRIBE 功能通过 [UnsubscribeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/UnsubscribeCommand.java) 类和 Redisun 类中的 `unsubscribe` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 订阅频道
+redisun.subscribe(subscriber, "channel1", "channel2", "channel3");
+
+// 取消订阅特定频道
+redisun.unsubscribe("channel1", "channel2");
+
+// 取消订阅所有频道
+redisun.unsubscribe();`} lang="java" />
+
+### 注意事项
+
+1. 如果没有提供频道参数，UNSUBSCRIBE 命令将取消订阅所有频道
+2. 取消订阅所有频道后，客户端将退出订阅状态，可以执行其他 Redis 命令
+3. 只能取消订阅当前客户端已经订阅的频道
+4. 取消订阅不存在的频道不会产生错误
+
+## 参考资料
+
+- [Redis UNSUBSCRIBE 命令官方文档](https://redis.io/commands/unsubscribe/)

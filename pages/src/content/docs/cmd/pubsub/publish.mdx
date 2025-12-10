@@ -1,0 +1,66 @@
+---
+title: PUBLISH
+description: Redis PUBLISH 命令用于将消息发布到指定的频道。
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+PUBLISH 命令用于将消息发布到指定的频道。不在订阅状态的客户端也可以发送 PUBLISH 命令。
+
+### Redis 原生命令语法
+
+<Code code={`PUBLISH channel message`} lang="bash" />
+
+**参数说明**
+
+- **channel**: 要发布消息的频道名称
+- **message**: 要发布的消息内容
+
+### 详细说明
+
+PUBLISH 命令将消息发送到指定的频道，所有订阅该频道的客户端都会收到这条消息。
+
+#### 返回值
+
+PUBLISH 命令返回接收到这条消息的客户端数量。由于发布消息的操作是瞬时传播的，只有在消息发送时正在订阅该频道的客户端才会收到消息。
+
+#### 消息传递保证
+
+Redis 的发布/订阅功能不保证消息的持久化或可靠传递。也就是说：
+
+1. 如果客户端在消息发布时没有订阅相应的频道，那么它将不会收到这条消息
+2. 消息不会被持久化存储
+3. 消息一旦发送就不会重试
+
+因此，Redis 的发布/订阅功能更适合用于实时通知场景，而不是需要可靠消息传递的场景。
+
+## Redisun 使用方式
+
+在 Redisun 中，PUBLISH 功能通过 [PublishCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/PublishCommand.java) 类和 Redisun 类中的 `publish` 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 发布消息到频道
+int receivers = redisun.publish("channel1", "Hello, World!");
+System.out.println("Message received by " + receivers + " clients");
+
+// 异步发布消息
+CompletableFuture<Integer> future = redisun.asyncPublish("channel1", "Hello, World!");
+future.thenAccept(count -> System.out.println("Message received by " + count + " clients"));`} lang="java" />
+
+### 注意事项
+
+1. PUBLISH 命令返回的是在消息发送时刻正在订阅该频道的客户端数量
+2. 发布消息的客户端本身不会收到自己发布的消息，即使它订阅了相应的频道
+3. 发布/订阅功能不保证消息的持久化或可靠传递
+4. 消息内容可以是任意字符串，包括二进制数据
+
+## 参考资料
+
+- [Redis PUBLISH 命令官方文档](https://redis.io/commands/publish/)
