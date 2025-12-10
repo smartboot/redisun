@@ -1231,6 +1231,9 @@ public final class Redisun {
 
     void releasePubSub() {
         synchronized (RedisunPubSub.class) {
+            AioSession session = pubSub.getClient().getSession();
+            RedisSession redisSession = session.getAttachment();
+            redisSession.setPubSub(null);
             multiplexClient.reuse(pubSub.getClient());
             pubSub = null;
         }
@@ -1264,11 +1267,11 @@ public final class Redisun {
         if (channels == null || channels.length == 0) {
             throw new RedisunException("Channels must not be null or empty");
         }
-        
+
         if (pubsub == null) {
             throw new RedisunException("Subscriber must not be null");
         }
-        
+
         try {
             RedisunPubSub redisunPubSub = redisunPubSub();
             redisunPubSub.subscribe(pubsub, channels);
