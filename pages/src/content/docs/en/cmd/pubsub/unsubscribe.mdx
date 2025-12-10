@@ -1,0 +1,62 @@
+---
+title: UNSUBSCRIBE
+description: The Redis UNSUBSCRIBE command is used to unsubscribe from specified channels.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The UNSUBSCRIBE command is used to unsubscribe from specified channels. If no channel name is provided, all channels will be unsubscribed.
+
+### Redis Native Command Syntax
+
+<Code code={`UNSUBSCRIBE [channel [channel ...]]`} lang="bash" />
+
+**Parameter Description**
+
+- **channel**: Optional parameter, one or more channel names to unsubscribe from. If no channels are specified, unsubscribe from all channels.
+
+### Detailed Description
+
+The UNSUBSCRIBE command is used to unsubscribe a client from one or more channels previously subscribed to through the SUBSCRIBE command. When a client no longer needs to receive messages from specific channels, this command can be used to unsubscribe.
+
+#### Message Format
+
+When a client successfully unsubscribes from a channel, it receives an array reply containing three elements:
+
+1. The first element is the "unsubscribe" string
+2. The second element is the name of the unsubscribed channel
+3. The third element is the number of channels currently subscribed by the client
+
+If the client no longer subscribes to any channels after executing the UNSUBSCRIBE command, it will exit subscription state and can send any type of command.
+
+## Redisun Usage
+
+In Redisun, the UNSUBSCRIBE functionality is implemented through the [UnsubscribeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/UnsubscribeCommand.java) class and the `unsubscribe` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Subscribe to channels
+redisun.subscribe(subscriber, "channel1", "channel2", "channel3");
+
+// Unsubscribe from specific channels
+redisun.unsubscribe("channel1", "channel2");
+
+// Unsubscribe from all channels
+redisun.unsubscribe();`} lang="java" />
+
+### Notes
+
+1. If no channel parameters are provided, the UNSUBSCRIBE command will unsubscribe from all channels
+2. After unsubscribing from all channels, the client will exit subscription state and can execute other Redis commands
+3. Only channels that the current client has already subscribed to can be unsubscribed
+4. Unsubscribing from non-existent channels will not produce an error
+
+## References
+
+- [Redis UNSUBSCRIBE Command Official Documentation](https://redis.io/commands/unsubscribe/)

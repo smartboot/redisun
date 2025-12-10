@@ -1,0 +1,66 @@
+---
+title: PUBLISH
+description: The Redis PUBLISH command is used to publish messages to the specified channel.
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The PUBLISH command is used to publish messages to the specified channel. Clients that are not in subscription state can also send PUBLISH commands.
+
+### Redis Native Command Syntax
+
+<Code code={`PUBLISH channel message`} lang="bash" />
+
+**Parameter Description**
+
+- **channel**: The name of the channel to publish the message to
+- **message**: The content of the message to be published
+
+### Detailed Description
+
+The PUBLISH command sends messages to the specified channel, and all clients subscribed to that channel will receive this message.
+
+#### Return Value
+
+The PUBLISH command returns the number of clients that received this message. Since the message publishing operation is propagated instantaneously, only clients that were subscribed to the channel at the time the message was sent will receive the message.
+
+#### Message Delivery Guarantee
+
+Redis' pub/sub functionality does not guarantee persistence or reliable delivery of messages. That is to say:
+
+1. If a client is not subscribed to the corresponding channel when the message is published, it will not receive this message
+2. Messages will not be persistently stored
+3. Messages will not be retried once sent
+
+Therefore, Redis' pub/sub functionality is more suitable for real-time notification scenarios rather than scenarios requiring reliable message delivery.
+
+## Redisun Usage
+
+In Redisun, the PUBLISH functionality is implemented through the [PublishCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/PublishCommand.java) class and the `publish` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Publish message to channel
+int receivers = redisun.publish("channel1", "Hello, World!");
+System.out.println("Message received by " + receivers + " clients");
+
+// Asynchronously publish message
+CompletableFuture<Integer> future = redisun.asyncPublish("channel1", "Hello, World!");
+future.thenAccept(count -> System.out.println("Message received by " + count + " clients"));`} lang="java" />
+
+### Notes
+
+1. The PUBLISH command returns the number of clients subscribed to the channel at the moment the message was sent
+2. The client that publishes the message itself will not receive the message it published, even if it subscribes to the corresponding channel
+3. Pub/sub functionality does not guarantee persistence or reliable delivery of messages
+4. Message content can be any string, including binary data
+
+## References
+
+- [Redis PUBLISH Command Official Documentation](https://redis.io/commands/publish/)

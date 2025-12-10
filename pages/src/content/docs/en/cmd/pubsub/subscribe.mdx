@@ -1,0 +1,103 @@
+---
+title: SUBSCRIBE
+description: The Redis SUBSCRIBE command is used to listen for messages on specified channels.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+The SUBSCRIBE command is used to listen for messages on specified channels. After a client enters subscription state, it can only receive messages pushed by the PUBLISH command and can no longer send commands other than SUBSCRIBE, UNSUBSCRIBE, PSUBSCRIBE, and PUNSUBSCRIBE.
+
+### Redis Native Command Syntax
+
+<Code code={`SUBSCRIBE channel [channel ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **channel**: One or more channel names to subscribe to
+
+### Detailed Description
+
+The SUBSCRIBE command is used to subscribe to one or more given channels. Once a client enters subscription state, it can only receive the following types of command replies:
+
+1. Messages pushed by the PUBLISH command
+2. Results of SUBSCRIBE and UNSUBSCRIBE commands
+
+In subscription state, the client cannot send commands other than SUBSCRIBE, UNSUBSCRIBE, PSUBSCRIBE, and PUNSUBSCRIBE.
+
+#### Message Format
+
+When a message is published to a channel subscribed by the client, the client receives an array reply containing three elements:
+
+1. The first element is the "message" string
+2. The second element is the name of the channel that generated the message
+3. The third element is the actual message content
+
+#### Subscription Confirmation
+
+When a client successfully subscribes to a channel, it receives an array reply containing three elements:
+
+1. The first element is the "subscribe" string
+2. The second element is the name of the subscribed channel
+3. The third element is the number of channels currently subscribed by the client
+
+## Redisun Usage
+
+In Redisun, the SUBSCRIBE functionality is implemented through the [SubscribeCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SubscribeCommand.java) class and the `subscribe` method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Create subscriber
+Subscriber subscriber = new Subscriber() {
+    @Override
+    public void onMessage(String channel, String message) {
+        System.out.println("Received message: " + message + " from channel: " + channel);
+    }
+    
+    @Override
+    public void onSubscribe(String channel) {
+        System.out.println("Subscribed to channel: " + channel);
+    }
+    
+    @Override
+    public void onUnsubscribe(String channel) {
+        System.out.println("Unsubscribed from channel: " + channel);
+    }
+    
+    @Override
+    public void onError(Throwable throwable) {
+        System.err.println("Subscription error: " + throwable.getMessage());
+    }
+};
+
+// Subscribe to channels
+redisun.subscribe(subscriber, "channel1", "channel2");
+
+// Publish message elsewhere
+// redisun.publish("channel1", "Hello World!");`} lang="java" />
+
+### Subscriber Interface Details
+
+The subscription functionality in Redisun is implemented through the [Subscriber](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/Subscriber.java) interface, which provides the following callback methods:
+
+- **onSubscribe(String channel)**: Called when successfully subscribing to a channel
+- **onUnsubscribe(String channel)**: Called when successfully unsubscribing from a channel
+- **onMessage(String channel, String message)**: Called when receiving a channel message
+- **onError(Throwable throwable)**: Called when a subscription connection encounters an error
+
+### Notes
+
+1. Subscription connections are exclusive - once in subscription state, the connection cannot be used to execute other commands
+2. If you need to execute regular commands and subscription operations simultaneously, you should create multiple Redisun instances
+3. Subscribers should handle exceptions properly to avoid crashing the entire subscription system due to callback exceptions
+4. Subscription connections have automatic reconnection mechanisms and will attempt to resubscribe to previous channels when the connection is disconnected
+5. In practical applications, subscribers typically run in a separate thread or process
+
+## References
+
+- [Redis SUBSCRIBE Command Official Documentation](https://redis.io/commands/subscribe/)
