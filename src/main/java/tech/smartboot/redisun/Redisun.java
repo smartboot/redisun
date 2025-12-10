@@ -23,6 +23,8 @@ import tech.smartboot.redisun.cmd.LPopCommand;
 import tech.smartboot.redisun.cmd.LPushCommand;
 import tech.smartboot.redisun.cmd.MGetCommand;
 import tech.smartboot.redisun.cmd.MSetCommand;
+import tech.smartboot.redisun.cmd.PSubscribeCommand;
+import tech.smartboot.redisun.cmd.PUnsubscribeCommand;
 import tech.smartboot.redisun.cmd.PublishCommand;
 import tech.smartboot.redisun.cmd.RPopCommand;
 import tech.smartboot.redisun.cmd.RPushCommand;
