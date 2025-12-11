@@ -123,7 +123,16 @@ public final class Redisun {
                 HelloCommand helloCommand = new HelloCommand();
                 helloCommand.setUsername(options.getUsername());
                 helloCommand.setPassword(options.getPassword());
-                syncExecute(helloCommand);
+                try {
+                    syncExecute(helloCommand);
+                } catch (RedisunException e) {
+                    String message = e.getMessage();
+                    if (message != null && message.contains("ERR unknown command 'HELLO'")) {
+                        throw new RedisunException("Please check the Redis version, which should be greater than or equal to 6.0.0");
+                    } else {
+                        throw e;
+                    }
+                }
 
                 // 如果配置的数据库不为0，则自动切换数据库
                 if (options.getDatabase() != 0) {
