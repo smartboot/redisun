@@ -1380,15 +1380,15 @@ public class RedisunTest {
 
         // 等待订阅建立
         Thread.sleep(1000);
-        
+
         Assert.assertTrue("onSubscribe should be called", subscribed.get());
 
         // 取消订阅
         redisunSubscriber.unsubscribe(channel);
         Thread.sleep(1000);
-        
+
         Assert.assertTrue("onUnsubscribe should be called", unsubscribed.get());
-        
+
         redisunSubscriber.close();
     }
 
@@ -1415,18 +1415,18 @@ public class RedisunTest {
         // 创建一个会断开连接的订阅者来触发错误回调
         Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
         redisunSubscriber.subscribe(subscriber, channel);
-        
+
         // 等待订阅建立
         Thread.sleep(1000);
-        
+
         // 模拟连接中断（这可能不会总是触发错误回调，取决于具体实现）
         // 我们只是验证框架能够处理这种情形
-        
+
         redisunSubscriber.close();
-        
+
         // 等待可能的错误回调
         Thread.sleep(1000);
-        
+
         // 错误回调可能不会被触发，因为我们正常关闭了连接
         // 但我们至少验证了代码路径是可行的
         System.out.println("Error callback test completed");
@@ -1510,4 +1510,33 @@ public class RedisunTest {
         redisunSubscriber.close();
     }
 
+    /**
+     * 模式订阅的测试用例，取消订阅
+     */
+    @Test
+    public void testPUnsubscribe() throws InterruptedException {
+        System.out.println("\n=== 测试模式订阅 ===");
+        final StringBuilder receivedChannel = new StringBuilder();
+        redisun.pSubscribe((channel, message) -> {
+                    receivedChannel.append(channel);
+                    System.out.println("订阅消息：" + channel + message);
+                },
+                "channel:*");
+        Thread.sleep(2000);
+
+        String channel = "channel:123";
+        int publish = redisun.publish(channel, "你好");
+        Assert.assertEquals(1, publish);
+        Thread.sleep(1000);
+
+        System.out.println("=== 测试取消模式订阅 ===");
+        redisun.pUnsubscribe("channel:*");
+        Thread.sleep(1000);
+
+        publish = redisun.publish("channel:456", "你好");
+        Assert.assertEquals(0, publish);
+        Assert.assertEquals(channel, receivedChannel.toString());
+        System.out.println("=== 测试总结 ===");
+        System.out.println("模式订阅测试通过！");
+    }
 }

@@ -36,4 +36,31 @@ public interface Subscriber {
      */
     default void onError(Throwable throwable) {
     }
+
+    /**
+     * 接收到模式订阅消息的回调方法
+     *
+     * @param pattern 模式
+     * @param channel 频道名称
+     * @param message 订阅消息
+     */
+    default void onPMessage(String pattern, String channel, String message){
+        onMessage(channel, message);
+    }
+
+    /**
+     * 接收到模式订阅确认消息的回调方法
+     *
+     * @param pattern 模式
+     */
+    default void onPSubscribe(String pattern) {
+    }
+
+    /**
+     * 接收到取消模式订阅确认消息的回调方法
+     *
+     * @param pattern 模式
+     */
+    default void onPUnsubscribe(String pattern) {
+    }
 }
