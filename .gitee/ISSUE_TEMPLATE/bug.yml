@@ -32,7 +32,7 @@ body:
     id: environment
     attributes:
       label: 运行环境
-      description: 请描述相关的运行环境信息（操作系统、Redis版本等）
+      description: 请描述相关的运行环境信息（操作系统、Redis版本等）。请注意：Redisun 基于 Redis 6.0 协议规范实现，对于旧版本 Redis 的兼容性问题，我们可能不会提供支持。
       placeholder: |
         - 操作系统: [例如 Windows 10, macOS 12.0, Ubuntu 20.04]
         - Redis 版本: [例如 Redis 6.2.6]
