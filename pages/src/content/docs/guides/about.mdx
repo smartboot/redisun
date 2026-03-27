@@ -102,6 +102,8 @@ Redisun 正在不断扩展对 Redis 命令的支持。以下是当前命令实�
 | `STRLEN` | 获取键值的长度 | [StrlenCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/StrlenCommand.java) | 字符串长度操作 |
 | `HSET` | 设置哈希字段的字符串值 | [HSetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HSetCommand.java) | 哈希字段设置操作 |
 | `HGET` | 获取哈希字段的值 | [HGetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HGetCommand.java) | 哈希字段获取操作 |
+| `HMSET` | 同时将多个 field-value (域 - 值) 对设置到哈希表中 | [HmSetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HmSetCommand.java) | 批量设置哈希字段 |
+| `HMGET` | 获取哈希表中一个或多个给定域的值 | [HmGetCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/HmGetCommand.java) | 批量获取哈希字段值 |
 | `SADD` | 向集合添加一个或多个成员 | [SAddCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/SAddCommand.java) | 集合成员添加操作 |
 | `INCRBY` | 将键的整数值增加给定数值 | [IncrByCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/IncrByCommand.java) | 原子递增操作 |
 | `DECRBY` | 将键的整数值减少给定数值 | [DecrByCommand](https://gitee.com/smartboot/redisun/blob/master/src/main/java/tech/smartboot/redisun/cmd/DecrByCommand.java) | 原子递减操作 |
@@ -142,8 +144,6 @@ Redisun 正在不断扩展对 Redis 命令的支持。以下是当前命令实�
 
 | 命令 | 优先级 | 状态 | 说明 |
 |------|--------|------|------|
-| `HMSET` | 🟡 P1 | 待开发 | 同时将多个 field-value (域-值)对设置到哈希表中 |
-| `HMGET` | 🟡 P1 | 待开发 | 获取哈希表中一个或多个给定域的值 |
 | `HGETALL` | 🟡 P1 | 待开发 | 获取哈希表中所有的域和值 |
 | `HDEL` | 🟡 P1 | 待开发 | 删除哈希表中一个或多个指定域 |
 | `HEXISTS` | 🟡 P1 | 待开发 | 查看哈希表中指定域是否存在 |
