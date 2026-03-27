@@ -1,0 +1,86 @@
+---
+title: HMSET
+description: The Redis HMSET command is used to set multiple field-value pairs in a hash table simultaneously.
+sidebar:
+  order: 10
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Set multiple field-value pairs in the hash table simultaneously.
+
+If the hash table does not exist, HMSET will first create an empty hash table and then perform the operation.
+
+If the field already exists, the old value will be overwritten by the new value.
+
+### Redis Native Command Syntax
+
+<Code code={`HMSET key field value [field value ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the hash table
+- **field**: The field in the hash table
+- **value**: The value to set
+
+### Detailed Explanation
+
+The HMSET command is used to set multiple field-value pairs in the hash table simultaneously. It is the batch version of the HSET command, which can set multiple fields at once, improving write efficiency.
+
+## Redisun Usage
+
+In redisun, the HMSET command is implemented through the HmSetCommand class and the hmset method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// Prepare multiple field-value pairs
+Map<String, String> userHash = new HashMap<>();
+userHash.put("name", "Alice");
+userHash.put("email", "alice@example.com");
+userHash.put("age", "25");
+userHash.put("city", "New York");
+
+// Set multiple hash table fields simultaneously
+boolean result = redisun.hmset("user:1000", userHash);
+System.out.println("HMSET result: " + result); // Output: true
+
+// Verify successful setting
+System.out.println("Name: " + redisun.hget("user:1000", "name")); // Output: Alice
+System.out.println("Email: " + redisun.hget("user:1000", "email")); // Output: alice@example.com
+
+// Update some fields
+Map<String, String> updateHash = new HashMap<>();
+updateHash.put("age", "26");
+updateHash.put("country", "USA");
+result = redisun.hmset("user:1000", updateHash);
+System.out.println("Update result: " + result); // Output: true
+
+// Verify update results
+System.out.println("Age: " + redisun.hget("user:1000", "age")); // Output: 26 (updated)
+System.out.println("Country: " + redisun.hget("user:1000", "country")); // Output: USA
+System.out.println("City: " + redisun.hget("user:1000", "city")); // Output: New York (unchanged)
+
+// Asynchronous version
+Map<String, String> asyncHash = new HashMap<>();
+asyncHash.put("phone", "1234567890");
+asyncHash.put("website", "https://example.com");
+CompletableFuture<Boolean> future = redisun.asyncHmset("user:1001", asyncHash);
+future.thenAccept(res -> System.out.println("Async HMSET result: " + res));`} lang="java" />
+
+## Notes
+
+1. If the hash table does not exist, a new hash table will be automatically created
+2. If the field already exists, the old value will be overwritten by the new value
+3. If setting only one field-value pair, it is recommended to use the HSET command
+4. The time complexity of the HMSET command is O(N), where N is the number of fields being set
+5. Compared to calling HSET multiple times, HMSET can reduce the number of network round trips and improve performance
+6. Suitable for batch setting multiple properties of an object
+7. All field-value pairs are either all set successfully or all fail (atomic operation)
+
+## References
+
+- [Redis HMSET Command Official Documentation](https://redis.io/commands/hmset/)

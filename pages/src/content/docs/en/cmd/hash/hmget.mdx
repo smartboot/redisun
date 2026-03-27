@@ -1,0 +1,85 @@
+---
+title: HMGET
+description: The Redis HMGET command is used to get the values of specified fields in a hash table.
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+Returns the values of one or more specified fields in the hash table.
+
+If the field does not exist, returns nil.
+
+If the key does not exist, returns nil.
+
+### Redis Native Command Syntax
+
+<Code code={`HMGET key field [field ...]`} lang="bash" />
+
+**Parameter Description**
+
+- **key**: The key of the hash table
+- **field**: One or more fields to get the value
+
+### Detailed Explanation
+
+The HMGET command is used to get the values of one or more specified fields stored in the hash table. It is the batch version of the HGET command, which can get the values of multiple fields at once, improving read efficiency.
+
+## Redisun Usage
+
+In redisun, the HMGET command is implemented through the HmGetCommand class and the hmget method in the Redisun class.
+
+### Basic Usage
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// First, set some hash table fields
+redisun.hset("user:1000", "name", "Alice");
+redisun.hset("user:1000", "email", "alice@example.com");
+redisun.hset("user:1000", "age", "25");
+
+// Get multiple hash table field values
+List<String> fields = Arrays.asList("name", "email", "age");
+List<String> values = redisun.hmget("user:1000", fields);
+System.out.println("Name: " + values.get(0)); // Output: Alice
+System.out.println("Email: " + values.get(1)); // Output: alice@example.com
+System.out.println("Age: " + values.get(2)); // Output: 25
+
+// Using varargs call
+List<String> varargsValues = redisun.hmget("user:1000", "name", "email");
+System.out.println("Name: " + varargsValues.get(0)); // Output: Alice
+System.out.println("Email: " + varargsValues.get(1)); // Output: alice@example.com
+
+// Get some non-existent fields
+List<String> partialFields = Arrays.asList("name", "phone", "age");
+List<String> partialValues = redisun.hmget("user:1000", partialFields);
+System.out.println("Name: " + partialValues.get(0)); // Output: Alice
+System.out.println("Phone: " + partialValues.get(1)); // Output: null (field does not exist)
+System.out.println("Age: " + partialValues.get(2)); // Output: 25
+
+// Get fields of non-existent key
+List<String> nonExistentValues = redisun.hmget("nonexistent", "name", "email");
+System.out.println("Non-existent: " + nonExistentValues); // Output: [null, null]
+
+// Asynchronous version
+CompletableFuture<List<String>> future = redisun.asyncHmget("user:1000", "name", "email");
+future.thenAccept(vals -> {
+    System.out.println("Async Name: " + vals.get(0));
+    System.out.println("Async Email: " + vals.get(1));
+});`} lang="java" />
+
+## Notes
+
+1. The order of returned values is consistent with the order of requested fields
+2. If a field does not exist, null is returned at that position
+3. If the key does not exist, all fields return null
+4. The time complexity of the HMGET command is O(N), where N is the number of requested fields
+5. Compared to calling HGET multiple times, HMGET can reduce the number of network round trips and improve performance
+6. Suitable for batch reading multiple properties of an object
+
+## References
+
+- [Redis HMGET Command Official Documentation](https://redis.io/commands/hmget/)

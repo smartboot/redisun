@@ -1,0 +1,85 @@
+---
+title: HMGET
+description: Redis HMGET 命令用于获取哈希表中指定字段的值。
+sidebar:
+  order: 9
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+返回哈希表中一个或多个指定字段的值。
+
+如果字段不存在，返回 nil。
+
+如果 key 不存在，返回 nil。
+
+### Redis 原生命令语法
+
+<Code code={`HMGET key field [field ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 哈希表的键
+- **field**: 要获取值的一个或多个字段
+
+### 详细说明
+
+HMGET 命令用于获取存储在哈希表中一个或多个指定字段的值。它是 HGET 命令的批量版本，可以一次性获取多个字段的值，提高读取效率。
+
+## Redisun 使用方式
+
+在 redisun 中，HMGET 命令通过 HmGetCommand 类和 Redisun 类中的 hmget 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 先设置一些哈希表字段
+redisun.hset("user:1000", "name", "Alice");
+redisun.hset("user:1000", "email", "alice@example.com");
+redisun.hset("user:1000", "age", "25");
+
+// 获取多个哈希表字段值
+List<String> fields = Arrays.asList("name", "email", "age");
+List<String> values = redisun.hmget("user:1000", fields);
+System.out.println("Name: " + values.get(0)); // 输出：Alice
+System.out.println("Email: " + values.get(1)); // 输出：alice@example.com
+System.out.println("Age: " + values.get(2)); // 输出：25
+
+// 使用可变参数调用
+List<String> varargsValues = redisun.hmget("user:1000", "name", "email");
+System.out.println("Name: " + varargsValues.get(0)); // 输出：Alice
+System.out.println("Email: " + varargsValues.get(1)); // 输出：alice@example.com
+
+// 获取部分不存在的字段
+List<String> partialFields = Arrays.asList("name", "phone", "age");
+List<String> partialValues = redisun.hmget("user:1000", partialFields);
+System.out.println("Name: " + partialValues.get(0)); // 输出：Alice
+System.out.println("Phone: " + partialValues.get(1)); // 输出：null (字段不存在)
+System.out.println("Age: " + partialValues.get(2)); // 输出：25
+
+// 获取不存在的 key 的字段
+List<String> nonExistentValues = redisun.hmget("nonexistent", "name", "email");
+System.out.println("Non-existent: " + nonExistentValues); // 输出：[null, null]
+
+// 异步版本
+CompletableFuture<List<String>> future = redisun.asyncHmget("user:1000", "name", "email");
+future.thenAccept(vals -> {
+    System.out.println("Async Name: " + vals.get(0));
+    System.out.println("Async Email: " + vals.get(1));
+});`} lang="java" />
+
+## 注意事项
+
+1. 返回值的顺序与请求字段的顺序一致
+2. 如果某个字段不存在，对应位置返回 null
+3. 如果 key 不存在，所有字段都返回 null
+4. HMGET 命令的时间复杂度为 O(N)，其中 N 是请求字段的数量
+5. 相比多次调用 HGET，HMGET 可以减少网络往返次数，提高性能
+6. 适合批量读取对象的多个属性
+
+## 参考资料
+
+- [Redis HMGET 命令官方文档](https://redis.io/commands/hmget/)

@@ -741,22 +741,108 @@ public class RedisunTest {
         String key = topic + ":hget";
         String field = "field1";
         String value = "value1";
-
+    
         // 先删除可能存在的键
         redisun.del(key);
-
-        // 获取不存在的哈希字段，应该返回null
+    
+        // 获取不存在的哈希字段，应该返回 null
         Assert.assertNull(redisun.hget(key, field));
-
+    
         // 设置哈希字段
         redisun.hset(key, field, value);
-
+    
         // 获取存在的哈希字段，应该返回对应的值
         Assert.assertEquals(value, redisun.hget(key, field));
-
-        // 获取不存在的字段，应该返回null
+    
+        // 获取不存在的字段，应该返回 null
         Assert.assertNull(redisun.hget(key, "nonexistent"));
-
+    
+        // 清理测试数据
+        redisun.del(key);
+    }
+    
+    @Test
+    public void testHmSetCommand() {
+        String key = topic + ":hmset";
+    
+        // 先删除可能存在的键
+        redisun.del(key);
+    
+        // 准备多个字段 - 值对
+        Map<String, String> hash = new HashMap<>();
+        hash.put("field1", "value1");
+        hash.put("field2", "value2");
+        hash.put("field3", "value3");
+    
+        // 执行 HMSET 命令
+        boolean result = redisun.hmset(key, hash);
+        Assert.assertTrue("HMSET should succeed", result);
+    
+        // 验证所有字段都被正确设置
+        Assert.assertEquals("value1", redisun.hget(key, "field1"));
+        Assert.assertEquals("value2", redisun.hget(key, "field2"));
+        Assert.assertEquals("value3", redisun.hget(key, "field3"));
+    
+        // 测试更新已存在的字段
+        Map<String, String> updateHash = new HashMap<>();
+        updateHash.put("field1", "updated_value1");
+        updateHash.put("field4", "value4");
+        result = redisun.hmset(key, updateHash);
+        Assert.assertTrue("HMSET update should succeed", result);
+    
+        // 验证更新后的值
+        Assert.assertEquals("updated_value1", redisun.hget(key, "field1"));
+        Assert.assertEquals("value4", redisun.hget(key, "field4"));
+        // 未更新的字段保持不变
+        Assert.assertEquals("value2", redisun.hget(key, "field2"));
+        Assert.assertEquals("value3", redisun.hget(key, "field3"));
+    
+        // 清理测试数据
+        redisun.del(key);
+    }
+    
+    @Test
+    public void testHmGetCommand() {
+        String key = topic + ":hmget";
+    
+        // 先删除可能存在的键
+        redisun.del(key);
+    
+        // 准备测试数据
+        redisun.hset(key, "field1", "value1");
+        redisun.hset(key, "field2", "value2");
+        redisun.hset(key, "field3", "value3");
+    
+        // 测试获取多个字段的值
+        List<String> fields = Arrays.asList("field1", "field2", "field3");
+        List<String> values = redisun.hmget(key, fields);
+    
+        Assert.assertEquals(3, values.size());
+        Assert.assertEquals("value1", values.get(0));
+        Assert.assertEquals("value2", values.get(1));
+        Assert.assertEquals("value3", values.get(2));
+    
+        // 测试获取部分不存在的字段
+        fields = Arrays.asList("field1", "nonexistent", "field3");
+        values = redisun.hmget(key, fields);
+    
+        Assert.assertEquals(3, values.size());
+        Assert.assertEquals("value1", values.get(0));
+        Assert.assertNull(values.get(1)); // 不存在的字段返回 null
+        Assert.assertEquals("value3", values.get(2));
+    
+        // 测试使用可变参数调用
+        List<String> varargsValues = redisun.hmget(key, "field1", "field2");
+        Assert.assertEquals(2, varargsValues.size());
+        Assert.assertEquals("value1", varargsValues.get(0));
+        Assert.assertEquals("value2", varargsValues.get(1));
+    
+        // 测试获取不存在的哈希表
+        List<String> nonExistentValues = redisun.hmget("nonexistent_key", "field1", "field2");
+        Assert.assertEquals(2, nonExistentValues.size());
+        Assert.assertNull(nonExistentValues.get(0));
+        Assert.assertNull(nonExistentValues.get(1));
+    
         // 清理测试数据
         redisun.del(key);
     }

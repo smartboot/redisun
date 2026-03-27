@@ -16,6 +16,8 @@ import tech.smartboot.redisun.cmd.FlushDbCommand;
 import tech.smartboot.redisun.cmd.GetCommand;
 import tech.smartboot.redisun.cmd.HGetCommand;
 import tech.smartboot.redisun.cmd.HSetCommand;
+import tech.smartboot.redisun.cmd.HmGetCommand;
+import tech.smartboot.redisun.cmd.HmSetCommand;
 import tech.smartboot.redisun.cmd.HelloCommand;
 import tech.smartboot.redisun.cmd.IncrByCommand;
 import tech.smartboot.redisun.cmd.IncrCommand;
@@ -805,8 +807,8 @@ public final class Redisun {
      * @param key   哈希表的键
      * @param field 哈希表中的字段
      * @param value 要设置的值
-     * @return 如果字段是哈希表中的一个新建字段，并且值设置成功，返回1；
-     * 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回0
+     * @return 如果字段是哈希表中的一个新建字段，并且值设置成功，返回 1；
+     * 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回 0
      */
     public CompletableFuture<Integer> asyncHset(String key, String field, String value) {
         return execute(new HSetCommand(key, field, value)).thenApply(resp -> {
@@ -815,6 +817,101 @@ public final class Redisun {
             }
             throw new RedisunException("invalid response:" + resp);
         });
+    }
+    
+    /**
+     * 同时将多个 field-value (域 - 值) 对设置到哈希表中
+     *
+     * @param key  哈希表的键
+     * @param hash 包含字段 - 值对的 Map
+     * @return 操作是否成功
+     */
+    public boolean hmset(String key, Map<String, String> hash) {
+        try {
+            return asyncHmset(key, hash).get();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
+        }
+    }
+    
+    /**
+     * 同时将多个 field-value (域 - 值) 对设置到哈希表中（异步版本）
+     *
+     * @param key  哈希表的键
+     * @param hash 包含字段 - 值对的 Map
+     * @return 操作是否成功
+     */
+    public CompletableFuture<Boolean> asyncHmset(String key, Map<String, String> hash) {
+        return execute(new HmSetCommand(key, hash)).thenApply(resp -> {
+            if (resp instanceof SimpleStrings) {
+                return SimpleStrings.OK.equals(((SimpleStrings) resp).getValue());
+            }
+            throw new RedisunException("invalid response:" + resp);
+        });
+    }
+    
+    /**
+     * 返回哈希表中指定字段的值
+     *
+     * @param key    哈希表的键
+     * @param fields 要获取值的字段列表
+     * @return 包含所有字段值的列表，不存在的字段返回 null
+     */
+    public List<String> hmget(String key, List<String> fields) {
+        try {
+            return asyncHmget(key, fields).get();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
+        }
+    }
+    
+    /**
+     * 返回哈希表中指定字段的值
+     *
+     * @param key    哈希表的键
+     * @param fields 要获取值的字段数组
+     * @return 包含所有字段值的列表，不存在的字段返回 null
+     */
+    public List<String> hmget(String key, String... fields) {
+        return hmget(key, java.util.Arrays.asList(fields));
+    }
+    
+    /**
+     * 返回哈希表中指定字段的值（异步版本）
+     *
+     * @param key    哈希表的键
+     * @param fields 要获取值的字段列表
+     * @return 包含所有字段值的列表，不存在的字段返回 null
+     */
+    public CompletableFuture<List<String>> asyncHmget(String key, List<String> fields) {
+        return execute(new HmGetCommand(key, fields)).thenApply(resp -> {
+            if (resp instanceof Arrays) {
+                List<RESP> resps = ((Arrays) resp).getValue();
+                List<String> result = new ArrayList<>(resps.size());
+                for (RESP r : resps) {
+                    if (r instanceof Nulls) {
+                        result.add(null);
+                    } else if (r instanceof BulkStrings) {
+                        result.add(((BulkStrings) r).getValue());
+                    } else {
+                        throw new RedisunException("invalid response:" + r);
+                    }
+                }
+                return result;
+            }
+            throw new RedisunException("invalid response:" + resp);
+        });
+    }
+    
+    /**
+     * 返回哈希表中指定字段的值（异步版本）
+     *
+     * @param key    哈希表的键
+     * @param fields 要获取值的字段数组
+     * @return 包含所有字段值的列表，不存在的字段返回 null
+     */
+    public CompletableFuture<List<String>> asyncHmget(String key, String... fields) {
+        return asyncHmget(key, java.util.Arrays.asList(fields));
     }
 
     /**

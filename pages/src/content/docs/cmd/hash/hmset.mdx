@@ -1,0 +1,86 @@
+---
+title: HMSET
+description: Redis HMSET 命令用于同时将多个 field-value (域 - 值) 对设置到哈希表中。
+sidebar:
+  order: 10
+---
+
+import { Code } from '@astrojs/starlight/components'
+
+同时将多个 field-value (域 - 值) 对设置到哈希表中。
+
+如果哈希表不存在，HMSET 会先创建一个空的哈希表再进行操作。
+
+如果字段已存在，旧值将被新值覆盖。
+
+### Redis 原生命令语法
+
+<Code code={`HMSET key field value [field value ...]`} lang="bash" />
+
+**参数说明**
+
+- **key**: 哈希表的键
+- **field**: 哈希表中的字段
+- **value**: 要设置的值
+
+### 详细说明
+
+HMSET 命令用于同时将多个字段 - 值对设置到哈希表中。它是 HSET 命令的批量版本，可以一次性设置多个字段，提高写入效率。
+
+## Redisun 使用方式
+
+在 redisun 中，HMSET 命令通过 HmSetCommand 类和 Redisun 类中的 hmset 方法实现。
+
+### 基本用法
+
+<Code code={`Redisun redisun = Redisun.create(options -> {
+    options.setAddress("redis://127.0.0.1:6379");
+});
+
+// 准备多个字段 - 值对
+Map<String, String> userHash = new HashMap<>();
+userHash.put("name", "Alice");
+userHash.put("email", "alice@example.com");
+userHash.put("age", "25");
+userHash.put("city", "New York");
+
+// 同时设置多个哈希表字段
+boolean result = redisun.hmset("user:1000", userHash);
+System.out.println("HMSET result: " + result); // 输出：true
+
+// 验证设置成功
+System.out.println("Name: " + redisun.hget("user:1000", "name")); // 输出：Alice
+System.out.println("Email: " + redisun.hget("user:1000", "email")); // 输出：alice@example.com
+
+// 更新部分字段
+Map<String, String> updateHash = new HashMap<>();
+updateHash.put("age", "26");
+updateHash.put("country", "USA");
+result = redisun.hmset("user:1000", updateHash);
+System.out.println("Update result: " + result); // 输出：true
+
+// 验证更新结果
+System.out.println("Age: " + redisun.hget("user:1000", "age")); // 输出：26 (已更新)
+System.out.println("Country: " + redisun.hget("user:1000", "country")); // 输出：USA
+System.out.println("City: " + redisun.hget("user:1000", "city")); // 输出：New York (保持不变)
+
+// 异步版本
+Map<String, String> asyncHash = new HashMap<>();
+asyncHash.put("phone", "1234567890");
+asyncHash.put("website", "https://example.com");
+CompletableFuture<Boolean> future = redisun.asyncHmset("user:1001", asyncHash);
+future.thenAccept(res -> System.out.println("Async HMSET result: " + res));`} lang="java" />
+
+## 注意事项
+
+1. 如果哈希表不存在，会自动创建一个新的哈希表
+2. 如果字段已存在，旧值会被新值覆盖
+3. 如果只设置一个字段 - 值对，建议使用 HSET 命令
+4. HMSET 命令的时间复杂度为 O(N)，其中 N 是设置的字段数量
+5. 相比多次调用 HSET，HMSET 可以减少网络往返次数，提高性能
+6. 适合批量设置对象的多个属性
+7. 所有字段 - 值对要么全部设置成功，要么全部失败（原子操作）
+
+## 参考资料
+
+- [Redis HMSET 命令官方文档](https://redis.io/commands/hmset/)
