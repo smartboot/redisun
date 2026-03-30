@@ -101,7 +101,7 @@ public class RedisunOptions {
     /**
      * 设置建立连接的超时时间
      */
-    protected RedisunOptions connectTimeout(int connectTimeout) {
+    public RedisunOptions connectTimeout(int connectTimeout) {
         this.multiplexOptions.connectTimeout(connectTimeout);
         return this;
     }
