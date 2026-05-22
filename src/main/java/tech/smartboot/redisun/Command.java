@@ -1,6 +1,6 @@
 package tech.smartboot.redisun;
 
-import org.smartboot.socket.transport.WriteBuffer;
+import io.github.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.RESP;
 

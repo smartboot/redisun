@@ -1,7 +1,7 @@
 package tech.smartboot.redisun;
 
-import org.smartboot.socket.extension.multiplex.MultiplexOptions;
-import org.smartboot.socket.extension.plugins.StreamMonitorPlugin;
+import io.github.smartboot.socket.extension.multiplex.MultiplexOptions;
+import io.github.smartboot.socket.extension.plugins.StreamMonitorPlugin;
 
 /**
  * @author 三刀

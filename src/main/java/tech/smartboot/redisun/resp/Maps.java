@@ -1,6 +1,6 @@
 package tech.smartboot.redisun.resp;
 
-import org.smartboot.socket.transport.WriteBuffer;
+import io.github.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.RedisunException;
 
 import java.io.IOException;
