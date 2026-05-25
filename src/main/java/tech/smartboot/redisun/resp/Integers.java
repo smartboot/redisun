@@ -110,9 +110,8 @@ public class Integers extends RESP<Long> {
                         state = DECODE_STATE_END;
                         value = isNegative ? -v : v;
                         return true;
-                    } else if (v < Integer.MIN_VALUE) {
-                        value = v;
-                        isNegative = true;
+                    } else if (v == Long.MIN_VALUE) {
+                        value = Long.MIN_VALUE;
                         return true;
                     }
                     return false;
