@@ -292,6 +292,66 @@ public class SimpleCommand extends Command {
      */
     public static final BulkStrings CONSTANTS_HMSET = BulkStrings.of("HMSET");
 
+    /**
+     * Redis SELECT 命令常量
+     * <p>
+     * 切换到指定的数据库。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/select/">Redis SELECT Command</a>
+     */
+    public static final BulkStrings CONSTANTS_SELECT = BulkStrings.of("SELECT");
+
+    /**
+     * Redis PUBLISH 命令常量
+     * <p>
+     * 将消息发布到指定的频道。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/publish/">Redis PUBLISH Command</a>
+     */
+    public static final BulkStrings CONSTANTS_PUBLISH = BulkStrings.of("PUBLISH");
+
+    /**
+     * Redis SUBSCRIBE 命令常量
+     * <p>
+     * 订阅给定的一个或多个频道的信息。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/subscribe/">Redis SUBSCRIBE Command</a>
+     */
+    public static final BulkStrings CONSTANTS_SUBSCRIBE = BulkStrings.of("SUBSCRIBE");
+
+    /**
+     * Redis UNSUBSCRIBE 命令常量
+     * <p>
+     * 取消订阅给定的一个或多个频道。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/unsubscribe/">Redis UNSUBSCRIBE Command</a>
+     */
+    public static final BulkStrings CONSTANTS_UNSUBSCRIBE = BulkStrings.of("UNSUBSCRIBE");
+
+    /**
+     * Redis PSUBSCRIBE 命令常量
+     * <p>
+     * 订阅一个或多个符合给定模式的频道。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/psubscribe/">Redis PSUBSCRIBE Command</a>
+     */
+    public static final BulkStrings CONSTANTS_PSUBSCRIBE = BulkStrings.of("PSUBSCRIBE");
+
+    /**
+     * Redis PUNSUBSCRIBE 命令常量
+     * <p>
+     * 取消订阅所有给定模式的频道。
+     * </p>
+     *
+     * @see <a href="https://redis.io/commands/punsubscribe/">Redis PUNSUBSCRIBE Command</a>
+     */
+    public static final BulkStrings CONSTANTS_PUNSUBSCRIBE = BulkStrings.of("PUNSUBSCRIBE");
+
     private final List<BulkStrings> arrays;
 
     public SimpleCommand(BulkStrings... arrays) {

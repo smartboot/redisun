@@ -7,14 +7,8 @@ import io.github.smartboot.socket.transport.AioSession;
 import tech.smartboot.redisun.cmd.ExpireCommand;
 import tech.smartboot.redisun.cmd.GetCommand;
 import tech.smartboot.redisun.cmd.HelloCommand;
-import tech.smartboot.redisun.cmd.PSubscribeCommand;
-import tech.smartboot.redisun.cmd.PUnsubscribeCommand;
-import tech.smartboot.redisun.cmd.PublishCommand;
-import tech.smartboot.redisun.cmd.SelectCommand;
 import tech.smartboot.redisun.cmd.SetCommand;
 import tech.smartboot.redisun.cmd.SimpleCommand;
-import tech.smartboot.redisun.cmd.SubscribeCommand;
-import tech.smartboot.redisun.cmd.UnsubscribeCommand;
 import tech.smartboot.redisun.cmd.ZRangeCommand;
 import tech.smartboot.redisun.resp.Arrays;
 import tech.smartboot.redisun.resp.BulkStrings;
@@ -112,7 +106,7 @@ public final class Redisun {
 
                 // 如果配置的数据库不为0，则自动切换数据库
                 if (options.getDatabase() != 0) {
-                    syncExecute(new SelectCommand(options.getDatabase()));
+                    syncExecute(new SimpleCommand(SimpleCommand.CONSTANTS_SELECT, RESP.ofString(String.valueOf(options.getDatabase()))));
                 }
             }
         };
@@ -1362,7 +1356,7 @@ public final class Redisun {
      * @return 接收到此消息的客户端数量
      */
     public CompletableFuture<Integer> asyncPublish(String channel, String message) {
-        return execute(new PublishCommand(channel, message)).thenApply(resp -> {
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_PUBLISH, RESP.ofString(channel), RESP.ofString(message))).thenApply(resp -> {
             if (resp instanceof Integers) {
                 return ((Integers) resp).getValue();
             }
@@ -1409,7 +1403,12 @@ public final class Redisun {
             AioSession session = pubSub.getClient().getSession();
             // 执行订阅命令
             synchronized (pubSub.getClient()) {
-                new UnsubscribeCommand(channels).writeTo(session.writeBuffer());
+                BulkStrings[] params = new BulkStrings[channels.length + 1];
+                params[0] = SimpleCommand.CONSTANTS_UNSUBSCRIBE;
+                for (int i = 0; i < channels.length; i++) {
+                    params[i + 1] = RESP.ofString(channels[i]);
+                }
+                new SimpleCommand(params).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1437,7 +1436,12 @@ public final class Redisun {
             AioSession session = redisunPubSub.getClient().getSession();
             // 执行频道订阅命令
             synchronized (redisunPubSub.getClient()) {
-                new SubscribeCommand(channels).writeTo(session.writeBuffer());
+                BulkStrings[] params = new BulkStrings[channels.length + 1];
+                params[0] = SimpleCommand.CONSTANTS_SUBSCRIBE;
+                for (int i = 0; i < channels.length; i++) {
+                    params[i + 1] = RESP.ofString(channels[i]);
+                }
+                new SimpleCommand(params).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1465,7 +1469,12 @@ public final class Redisun {
             AioSession session = redisunPubSub.getClient().getSession();
             // 执行模式订阅命令
             synchronized (redisunPubSub.getClient()) {
-                new PSubscribeCommand(patterns).writeTo(session.writeBuffer());
+                BulkStrings[] params = new BulkStrings[patterns.length + 1];
+                params[0] = SimpleCommand.CONSTANTS_PSUBSCRIBE;
+                for (int i = 0; i < patterns.length; i++) {
+                    params[i + 1] = RESP.ofString(patterns[i]);
+                }
+                new SimpleCommand(params).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1486,7 +1495,12 @@ public final class Redisun {
             AioSession session = pubSub.getClient().getSession();
             // 执行订阅命令
             synchronized (pubSub.getClient()) {
-                new PUnsubscribeCommand(patterns).writeTo(session.writeBuffer());
+                BulkStrings[] params = new BulkStrings[patterns.length + 1];
+                params[0] = SimpleCommand.CONSTANTS_PUNSUBSCRIBE;
+                for (int i = 0; i < patterns.length; i++) {
+                    params[i + 1] = RESP.ofString(patterns[i]);
+                }
+                new SimpleCommand(params).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
