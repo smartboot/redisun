@@ -3,7 +3,7 @@ build:
 	mvn clean install
 
 # 当需要升级版本时，执行该命令
-version=1.3.2
+version=1.4.0
 update_version:
 	mvn versions:set -DnewVersion=${version} versions:commit
 	mvn -DskipTests clean install
