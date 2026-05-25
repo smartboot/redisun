@@ -30,7 +30,7 @@ public class ConnectionErrorTest extends AbstractRedisunTest {
 
     @Test(expected = RedisunException.class)
     public void testInvalidPort() {
-        Redisun invalidRedisun = Redisun.create(opt -> opt.setAddress("127.0.0.1:abc"));
+        Redisun invalidRedisun = Redisun.create(opt -> opt.setAddress("127.0.0.1:789887"));
         try {
             invalidRedisun.set("key", "value");
         } finally {

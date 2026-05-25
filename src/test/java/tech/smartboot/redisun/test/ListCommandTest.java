@@ -473,8 +473,14 @@ public class ListCommandTest extends AbstractRedisunTest {
         Assert.assertEquals("string-value", redisun.get(key));
 
         // 再次作为list
-        redisun.lpush(key, "new-list-value");
-        Assert.assertEquals("new-list-value", redisun.lpop(key));
+        try {
+            redisun.lpush(key, "new-list-value");
+            Assert.fail("Expected IllegalStateException");
+        } catch (RedisunException e) {
+            Assert.assertEquals("WRONGTYPE Operation against a key holding the wrong kind of value", e.getMessage());
+        }
+
+
 
         redisun.del(key);
     }

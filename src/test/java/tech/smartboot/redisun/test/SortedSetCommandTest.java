@@ -571,7 +571,14 @@ public class SortedSetCommandTest extends AbstractRedisunTest {
         Assert.assertEquals("string-value", redisun.get(key));
 
         // 再次作为zset
-        redisun.zadd(key, 2.0, "new-member");
+        try {
+            redisun.zadd(key, 2.0, "new-member");
+            Assert.fail("ZADD on string type should throw exception");
+        }catch (RedisunException e){
+            // Expected
+            Assert.assertEquals("WRONGTYPE Operation against a key holding the wrong kind of value", e.getMessage());
+        }
+
 
         redisun.del(key);
     }

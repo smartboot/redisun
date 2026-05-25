@@ -20,6 +20,7 @@ import tech.smartboot.redisun.resp.SimpleStrings;
 import java.io.IOException;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -401,6 +402,9 @@ public final class Redisun {
      * @return 包含所有键值的列表，不存在的键返回null
      */
     public CompletableFuture<List<String>> asyncMget(List<String> keys) {
+        if (keys.isEmpty()) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
         BulkStrings[] params = new BulkStrings[keys.size() + 1];
         params[0] = SimpleCommand.CONSTANTS_MGET;
         for (int i = 0; i < keys.size(); i++) {
@@ -579,6 +583,9 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public CompletableFuture<Boolean> asyncMset(Map<String, String> items) {
+        if (items.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
         BulkStrings[] params = new BulkStrings[items.size() * 2 + 1];
         params[0] = SimpleCommand.CONSTANTS_MSET;
         int i = 1;

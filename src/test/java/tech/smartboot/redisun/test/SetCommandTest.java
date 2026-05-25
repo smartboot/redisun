@@ -203,7 +203,14 @@ public class SetCommandTest extends AbstractRedisunTest {
         Assert.assertEquals("string-value", redisun.get(key));
 
         // 再次作为set
-        redisun.sadd(key, "new-member");
+        try {
+            redisun.sadd(key, "new-member");
+            Assert.fail("SADD on string type should throw exception");
+        } catch (RedisunException e) {
+            // Expected
+            Assert.assertEquals("WRONGTYPE Operation against a key holding the wrong kind of value", e.getMessage());
+        }
+
 
         redisun.del(key);
     }
