@@ -1,8 +1,11 @@
 package tech.smartboot.redisun.cmd;
 
+import io.github.smartboot.socket.transport.WriteBuffer;
 import tech.smartboot.redisun.Command;
 import tech.smartboot.redisun.resp.BulkStrings;
+import tech.smartboot.redisun.resp.RESP;
 
+import java.io.IOException;
 import java.util.List;
 
 public class SimpleCommand extends Command {
@@ -352,14 +355,25 @@ public class SimpleCommand extends Command {
      */
     public static final BulkStrings CONSTANTS_PUNSUBSCRIBE = BulkStrings.of("PUNSUBSCRIBE");
 
-    private final List<BulkStrings> arrays;
+    private final BulkStrings[] arrays;
 
     public SimpleCommand(BulkStrings... arrays) {
-        this.arrays = java.util.Arrays.asList(arrays);
+        this.arrays = arrays;
     }
 
     @Override
     protected List<BulkStrings> buildParams() {
-        return arrays;
+        throw new UnsupportedOperationException();
+    }
+
+    public void writeTo(WriteBuffer writeBuffer) throws IOException {
+        // 写入数组类型标识符
+        writeBuffer.write(RESP.RESP_DATA_TYPE_ARRAY);
+        // 写入数组元素个数
+        RESP.writeInt(writeBuffer, arrays.length);
+        // 逐个写入数组元素
+        for (RESP item : arrays) {
+            item.writeTo(writeBuffer);
+        }
     }
 }
