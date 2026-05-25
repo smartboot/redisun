@@ -473,7 +473,10 @@ public final class Redisun {
         try {
             return future.get();
         } catch (Throwable e) {
-            throw new RedisunException(e);
+            while (e.getCause() != null) {
+                e = e.getCause();
+            }
+            throw new RedisunException(e.getMessage());
         }
     }
 

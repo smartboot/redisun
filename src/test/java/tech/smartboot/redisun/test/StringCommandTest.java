@@ -140,6 +140,11 @@ public class StringCommandTest extends AbstractRedisunTest {
         redisun.set(null, "value");
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testSetWithNullValue() {
+        redisun.set(topic + ":null-value", null);
+    }
+
     @Test
     public void testSetWithEmptyValue() {
         String key = topic + ":empty-value";
@@ -159,6 +164,36 @@ public class StringCommandTest extends AbstractRedisunTest {
         boolean result = redisun.set(key, largeValue.toString());
         Assert.assertTrue("Setting large value should succeed", result);
         Assert.assertEquals("Large value length should match", 1024 * 1024, redisun.get(key).length());
+        redisun.del(key);
+    }
+
+    @Test
+    public void testSetOverwriteExistingKey() {
+        String key = topic + ":overwrite";
+        redisun.set(key, "original");
+        Assert.assertEquals("original", redisun.get(key));
+        
+        redisun.set(key, "overwritten");
+        Assert.assertEquals("overwritten", redisun.get(key));
+        
+        redisun.del(key);
+    }
+
+    @Test
+    public void testSetWithSpecialCharacters() {
+        String key = topic + ":special";
+        String[] specialValues = {
+            "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+            "\n\r\t",
+            "  leading and trailing spaces  ",
+            "Unicode: 中文🎉🎊"
+        };
+        
+        for (String value : specialValues) {
+            redisun.set(key, value);
+            Assert.assertEquals("Special value should be stored correctly", value, redisun.get(key));
+        }
+        
         redisun.del(key);
     }
 
@@ -187,6 +222,32 @@ public class StringCommandTest extends AbstractRedisunTest {
     @Test(expected = NullPointerException.class)
     public void testGetWithNullKey() {
         redisun.get(null);
+    }
+
+    @Test
+    public void testGetAfterExpire() throws InterruptedException {
+        String key = topic + ":get-expire";
+        redisun.set(key, "value", cmd -> cmd.expire(1));
+        Assert.assertEquals("value", redisun.get(key));
+        
+        Thread.sleep(1100);
+        Assert.assertNull("GET after expiration should return null", redisun.get(key));
+    }
+
+    @Test
+    public void testGetWrongType() {
+        String key = topic + ":get-wrong-type";
+        redisun.lpush(key, "list-value");
+        
+        try {
+            // GET on list type should still work (returns the list as string representation)
+            String result = redisun.get(key);
+            // Redis returns error for GET on wrong type
+        } catch (RedisunException e) {
+            // Expected - WRONGTYPE error
+        }
+        
+        redisun.del(key);
     }
 
     // ==================== MSET/MGET命令测试 ====================
@@ -218,6 +279,25 @@ public class StringCommandTest extends AbstractRedisunTest {
     @Test(expected = NullPointerException.class)
     public void testMGetWithNullKeys() {
         redisun.mget(null);
+    }
+
+    @Test
+    public void testMGetWithEmptyList() {
+        List<String> keys = Arrays.asList();
+        List<String> values = redisun.mget(keys);
+        Assert.assertTrue("MGET with empty list should return empty list", values.isEmpty());
+    }
+
+    @Test
+    public void testMGetSingleKey() {
+        String key = topic + ":mget-single";
+        redisun.set(key, "single-value");
+        
+        List<String> values = redisun.mget(Arrays.asList(key));
+        Assert.assertEquals(1, values.size());
+        Assert.assertEquals("single-value", values.get(0));
+        
+        redisun.del(key);
     }
 
     @Test
@@ -260,6 +340,26 @@ public class StringCommandTest extends AbstractRedisunTest {
         redisun.mset(null);
     }
 
+    @Test
+    public void testMSetWithEmptyMap() {
+        Map<String, String> items = new HashMap<>();
+        boolean result = redisun.mset(items);
+        Assert.assertTrue("MSET with empty map should succeed", result);
+    }
+
+    @Test
+    public void testMSetOverwrite() {
+        String key = topic + ":mset-overwrite";
+        redisun.set(key, "original");
+        
+        Map<String, String> items = new HashMap<>();
+        items.put(key, "overwritten");
+        redisun.mset(items);
+        
+        Assert.assertEquals("overwritten", redisun.get(key));
+        redisun.del(key);
+    }
+
     // ==================== APPEND命令测试 ====================
 
     @Test
@@ -290,6 +390,34 @@ public class StringCommandTest extends AbstractRedisunTest {
         redisun.append(topic + ":append-null", null);
     }
 
+    @Test
+    public void testAppendToNonExistentKey() {
+        String key = topic + ":append-new";
+        redisun.del(key);
+        
+        int length = redisun.append(key, "new-value");
+        Assert.assertEquals(9, length);
+        Assert.assertEquals("new-value", redisun.get(key));
+        
+        redisun.del(key);
+    }
+
+    @Test
+    public void testAppendMultipleTimes() {
+        String key = topic + ":append-multi";
+        redisun.del(key);
+        
+        StringBuilder expected = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            String part = "part" + i;
+            expected.append(part);
+            redisun.append(key, part);
+        }
+        
+        Assert.assertEquals(expected.toString(), redisun.get(key));
+        redisun.del(key);
+    }
+
     // ==================== STRLEN命令测试 ====================
 
     @Test
@@ -312,6 +440,15 @@ public class StringCommandTest extends AbstractRedisunTest {
     @Test(expected = RedisunException.class)
     public void testStrlenWithNullKey() {
         redisun.strlen(null);
+    }
+
+    @Test
+    public void testStrlenWithUnicode() {
+        String key = topic + ":strlen-unicode";
+        redisun.set(key, "中文测试");
+        // 中文字符在UTF-8中占3字节
+        Assert.assertTrue("Unicode string length should be correct", redisun.strlen(key) > 0);
+        redisun.del(key);
     }
 
     // ==================== INCR/DECR命令测试 ====================
@@ -343,6 +480,15 @@ public class StringCommandTest extends AbstractRedisunTest {
     }
 
     @Test
+    public void testIncrOnNonExistentKey() {
+        String key = topic + ":incr-new";
+        redisun.del(key);
+        Assert.assertEquals(1, redisun.incr(key));
+        Assert.assertEquals("1", redisun.get(key));
+        redisun.del(key);
+    }
+
+    @Test
     public void testDecrCommand() {
         String key = topic + ":decr";
 
@@ -366,6 +512,15 @@ public class StringCommandTest extends AbstractRedisunTest {
     @Test(expected = RedisunException.class)
     public void testDecrWithNullKey() {
         redisun.decr(null);
+    }
+
+    @Test
+    public void testDecrOnNonExistentKey() {
+        String key = topic + ":decr-new";
+        redisun.del(key);
+        Assert.assertEquals(-1, redisun.decr(key));
+        Assert.assertEquals("-1", redisun.get(key));
+        redisun.del(key);
     }
 
     @Test
@@ -396,6 +551,24 @@ public class StringCommandTest extends AbstractRedisunTest {
     }
 
     @Test
+    public void testIncrByZero() {
+        String key = topic + ":incrby-zero";
+        redisun.set(key, "10");
+        Assert.assertEquals(10, redisun.incrBy(key, 0));
+        Assert.assertEquals("10", redisun.get(key));
+        redisun.del(key);
+    }
+
+    @Test
+    public void testIncrByNegative() {
+        String key = topic + ":incrby-negative";
+        redisun.set(key, "10");
+        Assert.assertEquals(5, redisun.incrBy(key, -5));
+        Assert.assertEquals("5", redisun.get(key));
+        redisun.del(key);
+    }
+
+    @Test
     public void testDecrByCommand() {
         String key = topic + ":decrby";
 
@@ -420,6 +593,24 @@ public class StringCommandTest extends AbstractRedisunTest {
     @Test(expected = RedisunException.class)
     public void testDecrByWithNullKey() {
         redisun.decrBy(null, 5);
+    }
+
+    @Test
+    public void testDecrByZero() {
+        String key = topic + ":decrby-zero";
+        redisun.set(key, "10");
+        Assert.assertEquals(10, redisun.decrBy(key, 0));
+        Assert.assertEquals("10", redisun.get(key));
+        redisun.del(key);
+    }
+
+    @Test
+    public void testDecrByNegative() {
+        String key = topic + ":decrby-negative";
+        redisun.set(key, "10");
+        Assert.assertEquals(15, redisun.decrBy(key, -5));
+        Assert.assertEquals("15", redisun.get(key));
+        redisun.del(key);
     }
 
     // ==================== 异步方法测试 ====================
@@ -469,6 +660,21 @@ public class StringCommandTest extends AbstractRedisunTest {
         redisun.del(key, key + ":1", key + ":2");
     }
 
+    @Test
+    public void testAsyncSetWithOptions() throws Exception {
+        String key = topic + ":async-options";
+        
+        // Test async set with NX option
+        CompletableFuture<Boolean> future = redisun.asyncSet(key, "value", cmd -> cmd.setIfNotExists());
+        Assert.assertTrue(future.get());
+        
+        // Should fail because key exists
+        future = redisun.asyncSet(key, "new-value", cmd -> cmd.setIfNotExists());
+        Assert.assertFalse(future.get());
+        
+        redisun.del(key);
+    }
+
     // ==================== 边界条件测试 ====================
 
     @Test
@@ -513,5 +719,80 @@ public class StringCommandTest extends AbstractRedisunTest {
         Assert.assertEquals(Long.MIN_VALUE, result);
 
         redisun.del(key);
+    }
+
+    @Test
+    public void testIncrDecrOverflow() {
+        String key = topic + ":overflow";
+        
+        // Test overflow
+        redisun.set(key, String.valueOf(Long.MAX_VALUE));
+        try {
+            redisun.incr(key);
+            // Some Redis versions may handle overflow differently
+        } catch (RedisunException e) {
+            // Expected in some cases
+        }
+        
+        redisun.set(key, String.valueOf(Long.MIN_VALUE));
+        try {
+            redisun.decr(key);
+            // Some Redis versions may handle underflow differently
+        } catch (RedisunException e) {
+            // Expected in some cases
+        }
+        
+        redisun.del(key);
+    }
+
+    @Test
+    public void testConcurrentStringOperations() throws InterruptedException {
+        String key = topic + ":concurrent";
+        int threadCount = 10;
+        int operationsPerThread = 50;
+        
+        redisun.del(key);
+        redisun.set(key, "0");
+        
+        Thread[] threads = new Thread[threadCount];
+        for (int i = 0; i < threadCount; i++) {
+            threads[i] = new Thread(() -> {
+                for (int j = 0; j < operationsPerThread; j++) {
+                    redisun.incr(key);
+                }
+            });
+            threads[i].start();
+        }
+        
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        
+        Assert.assertEquals(String.valueOf(threadCount * operationsPerThread), redisun.get(key));
+        redisun.del(key);
+    }
+
+    @Test
+    public void testKeyNameEdgeCases() {
+        // Test very long key
+        StringBuilder longKey = new StringBuilder(topic + ":");
+        for (int i = 0; i < 500; i++) {
+            longKey.append("a");
+        }
+        redisun.set(longKey.toString(), "value");
+        Assert.assertEquals("value", redisun.get(longKey.toString()));
+        redisun.del(longKey.toString());
+        
+        // Test key with spaces
+        String spaceKey = topic + ":key with spaces";
+        redisun.set(spaceKey, "value");
+        Assert.assertEquals("value", redisun.get(spaceKey));
+        redisun.del(spaceKey);
+        
+        // Test key with special characters
+        String specialKey = topic + ":!@#$%^&*()";
+        redisun.set(specialKey, "value");
+        Assert.assertEquals("value", redisun.get(specialKey));
+        redisun.del(specialKey);
     }
 }

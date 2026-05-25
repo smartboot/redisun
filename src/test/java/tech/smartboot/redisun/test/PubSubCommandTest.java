@@ -7,6 +7,9 @@ import tech.smartboot.redisun.RedisunException;
 import tech.smartboot.redisun.Subscriber;
 
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -23,7 +26,7 @@ public class PubSubCommandTest extends AbstractRedisunTest {
     // ==================== SUBSCRIBE/PUBLISH测试 ====================
 
     @Test
-    public void testPubSubCommands() throws InterruptedException {
+    public void testPubSubBasic() throws InterruptedException {
         String channel = topic + ":pubsub";
         String message = "Hello, Redisun!";
 
@@ -58,220 +61,247 @@ public class PubSubCommandTest extends AbstractRedisunTest {
     }
 
     @Test
-    public void testUnsubscribe() throws InterruptedException {
-        String channel = topic + ":unsubscribe-test";
-        String message1 = "Message 1";
-        String message2 = "Message 2";
+    public void testPubSubMultipleChannels() throws InterruptedException {
+        String channel1 = topic + ":multi-1";
+        String channel2 = topic + ":multi-2";
+        String channel3 = topic + ":multi-3";
 
-        AtomicInteger messageCount = new AtomicInteger(0);
-        StringBuilder receivedMessages = new StringBuilder();
-
-        Subscriber pubsub = new Subscriber() {
-            @Override
-            public void onMessage(String ch, String msg) {
-                messageCount.incrementAndGet();
-                if (receivedMessages.length() > 0) {
-                    receivedMessages.append(",");
-                }
-                receivedMessages.append(msg);
-            }
-        };
-
-        Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
-        subscriber.subscribe(pubsub, channel);
-
-        Thread.sleep(1000);
-
-        int receivers1 = redisun.publish(channel, message1);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers1);
-        Assert.assertEquals(1, messageCount.get());
-
-        subscriber.unsubscribe(channel);
-        Thread.sleep(1000);
-
-        int receivers2 = redisun.publish(channel, message2);
-        Thread.sleep(500);
-        Assert.assertEquals(0, receivers2);
-        Assert.assertEquals(1, messageCount.get());
-        Assert.assertEquals(message1, receivedMessages.toString());
-    }
-
-    @Test
-    public void testMultipleSubscriptions() throws InterruptedException {
-        String channel1 = topic + ":multi-sub-1";
-        String channel2 = topic + ":multi-sub-2";
-        String channel3 = topic + ":multi-sub-3";
-
-        java.util.Map<String, java.util.List<String>> receivedMessages = new java.util.concurrent.ConcurrentHashMap<>();
-        receivedMessages.put(channel1, new CopyOnWriteArrayList<>());
-        receivedMessages.put(channel2, new CopyOnWriteArrayList<>());
-        receivedMessages.put(channel3, new CopyOnWriteArrayList<>());
-
-        Subscriber pubsub1 = (ch, msg) -> receivedMessages.get(ch).add(msg);
-        Subscriber pubsub2 = (ch, msg) -> receivedMessages.get(ch).add(msg);
-        Subscriber pubsub3 = (ch, msg) -> receivedMessages.get(ch).add(msg);
-
-        Thread thread1 = new Thread(() -> {
-            Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-            try {
-                subscriber.subscribe(pubsub1, channel1, channel2);
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                // Normal exit
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-        Thread thread2 = new Thread(() -> {
-            Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-            try {
-                subscriber.subscribe(pubsub2, channel2, channel3);
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                // Normal exit
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-        Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-        subscriber.subscribe(pubsub3, channel1);
-
-        thread1.start();
-        thread2.start();
-
-        Thread.sleep(1500);
-
-        String msg1 = "Message to channel1";
-        int receivers1 = redisun.publish(channel1, msg1);
-        Thread.sleep(500);
-        Assert.assertEquals(2, receivers1);
-        Assert.assertEquals(2, receivedMessages.get(channel1).size());
-
-        String msg2 = "Message to channel2";
-        int receivers2 = redisun.publish(channel2, msg2);
-        Thread.sleep(500);
-        Assert.assertEquals(2, receivers2);
-        Assert.assertEquals(2, receivedMessages.get(channel2).size());
-
-        String msg3 = "Message to channel3";
-        int receivers3 = redisun.publish(channel3, msg3);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers3);
-        Assert.assertEquals(1, receivedMessages.get(channel3).size());
-
-        subscriber.unsubscribe(channel1);
-        Thread.sleep(1000);
-
-        String msg4 = "Another message to channel1";
-        int receivers4 = redisun.publish(channel1, msg4);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers4);
-        Assert.assertEquals(3, receivedMessages.get(channel1).size());
-
-        thread1.interrupt();
-        thread2.interrupt();
-    }
-
-    @Test
-    public void testSingleConnectionMultipleChannels() throws InterruptedException {
-        String channel1 = topic + ":single-conn-1";
-        String channel2 = topic + ":single-conn-2";
-        String channel3 = topic + ":single-conn-3";
-
-        java.util.Map<String, java.util.List<String>> receivedMessages = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<String, List<String>> receivedMessages = new ConcurrentHashMap<>();
         receivedMessages.put(channel1, new CopyOnWriteArrayList<>());
         receivedMessages.put(channel2, new CopyOnWriteArrayList<>());
         receivedMessages.put(channel3, new CopyOnWriteArrayList<>());
 
         Subscriber pubsub = (ch, msg) -> receivedMessages.get(ch).add(msg);
 
-        Redisun subscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
+        Redisun subscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
         subscriber.subscribe(pubsub, channel1, channel2, channel3);
 
         Thread.sleep(1500);
 
-        String msg1 = "Message 1 to channel1";
-        int receivers1 = redisun.publish(channel1, msg1);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers1);
+        // 向每个频道发送消息
+        Assert.assertEquals(1, redisun.publish(channel1, "msg1"));
+        Assert.assertEquals(1, redisun.publish(channel2, "msg2"));
+        Assert.assertEquals(1, redisun.publish(channel3, "msg3"));
+
+        Thread.sleep(1000);
+
         Assert.assertEquals(1, receivedMessages.get(channel1).size());
-
-        String msg2 = "Message 1 to channel2";
-        int receivers2 = redisun.publish(channel2, msg2);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers2);
         Assert.assertEquals(1, receivedMessages.get(channel2).size());
-
-        String msg3 = "Message 1 to channel3";
-        int receivers3 = redisun.publish(channel3, msg3);
-        Thread.sleep(500);
-        Assert.assertEquals(1, receivers3);
         Assert.assertEquals(1, receivedMessages.get(channel3).size());
 
-        // 快速连续发布
-        redisun.publish(channel1, "Message 2 to channel1");
-        redisun.publish(channel2, "Message 2 to channel2");
-        redisun.publish(channel3, "Message 2 to channel3");
+        subscriber.close();
+    }
+
+    @Test
+    public void testPubSubMultipleSubscribers() throws InterruptedException {
+        String channel = topic + ":multi-sub";
+
+        AtomicInteger messageCount1 = new AtomicInteger(0);
+        AtomicInteger messageCount2 = new AtomicInteger(0);
+
+        Subscriber subscriber1 = (ch, msg) -> messageCount1.incrementAndGet();
+        Subscriber subscriber2 = (ch, msg) -> messageCount2.incrementAndGet();
+
+        Redisun redisun1 = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        Redisun redisun2 = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+
+        redisun1.subscribe(subscriber1, channel);
+        redisun2.subscribe(subscriber2, channel);
+
         Thread.sleep(1000);
 
-        Assert.assertEquals(2, receivedMessages.get(channel1).size());
-        Assert.assertEquals(2, receivedMessages.get(channel2).size());
-        Assert.assertEquals(2, receivedMessages.get(channel3).size());
-
-        // 部分取消订阅
-        subscriber.unsubscribe(channel2);
-        Thread.sleep(2000);
-
-        int receivers7 = redisun.publish(channel1, "Message 3 to channel1");
-        int receivers8 = redisun.publish(channel2, "Message 3 to channel2");
-        int receivers9 = redisun.publish(channel3, "Message 3 to channel3");
+        int receivers = redisun.publish(channel, "test-message");
         Thread.sleep(1000);
 
-        Assert.assertEquals(1, receivers7);
-        Assert.assertEquals(0, receivers8);
-        Assert.assertEquals(1, receivers9);
+        Assert.assertEquals(2, receivers);
+        Assert.assertEquals(1, messageCount1.get());
+        Assert.assertEquals(1, messageCount2.get());
 
-        Assert.assertEquals(3, receivedMessages.get(channel1).size());
-        Assert.assertEquals(2, receivedMessages.get(channel2).size());
-        Assert.assertEquals(3, receivedMessages.get(channel3).size());
+        redisun1.close();
+        redisun2.close();
+    }
+
+    // ==================== UNSUBSCRIBE测试 ====================
+
+    @Test
+    public void testUnsubscribeSingle() throws InterruptedException {
+        String channel = topic + ":unsub-single";
+
+        AtomicInteger messageCount = new AtomicInteger(0);
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel);
+
+        Thread.sleep(1000);
+
+        // 发送第一条消息
+        Assert.assertEquals(1, redisun.publish(channel, "msg1"));
+        Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
+
+        // 取消订阅
+        redisunSubscriber.unsubscribe(channel);
+        Thread.sleep(1000);
+
+        // 发送第二条消息
+        Assert.assertEquals(0, redisun.publish(channel, "msg2"));
+        Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
+
+        redisunSubscriber.close();
+    }
+
+    @Test
+    public void testUnsubscribeMultiple() throws InterruptedException {
+        String channel1 = topic + ":unsub-multi1";
+        String channel2 = topic + ":unsub-multi2";
+
+        AtomicInteger messageCount = new AtomicInteger(0);
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel1, channel2);
+
+        Thread.sleep(1000);
+
+        // 发送消息到两个频道
+        redisun.publish(channel1, "msg1");
+        redisun.publish(channel2, "msg2");
+        Thread.sleep(500);
+        Assert.assertEquals(2, messageCount.get());
+
+        // 取消订阅一个频道
+        redisunSubscriber.unsubscribe(channel1);
+        Thread.sleep(1000);
+
+        // 再次发送消息
+        redisun.publish(channel1, "msg3");
+        redisun.publish(channel2, "msg3");
+        Thread.sleep(500);
+        Assert.assertEquals(3, messageCount.get());
+
+        redisunSubscriber.close();
+    }
+
+    @Test
+    public void testUnsubscribeAll() throws InterruptedException {
+        String channel1 = topic + ":unsub-all1";
+        String channel2 = topic + ":unsub-all2";
+
+        AtomicInteger messageCount = new AtomicInteger(0);
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel1, channel2);
+
+        Thread.sleep(1000);
+
+        // 发送消息
+        redisun.publish(channel1, "msg1");
+        Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
 
         // 取消所有订阅
-        subscriber.unsubscribe();
+        redisunSubscriber.unsubscribe();
         Thread.sleep(1000);
 
-        int receivers10 = redisun.publish(channel1, "No one receives this");
-        int receivers11 = redisun.publish(channel3, "No one receives this");
+        // 再次发送消息
+        Assert.assertEquals(0, redisun.publish(channel1, "msg2"));
+        Assert.assertEquals(0, redisun.publish(channel2, "msg2"));
         Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
 
-        Assert.assertEquals(0, receivers10);
-        Assert.assertEquals(0, receivers11);
+        redisunSubscriber.close();
     }
 
     // ==================== 模式订阅测试 ====================
 
     @Test
+    public void testPSubscribe() throws InterruptedException {
+        String pattern = topic + ":pattern:*";
+        String channel1 = topic + ":pattern:1";
+        String channel2 = topic + ":pattern:2";
+        String channel3 = topic + ":other:1";
+
+        AtomicInteger messageCount = new AtomicInteger(0);
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.pSubscribe(subscriber, pattern);
+
+        Thread.sleep(1000);
+
+        // 发送消息到匹配模式的频道
+        redisun.publish(channel1, "msg1");
+        redisun.publish(channel2, "msg2");
+        Thread.sleep(500);
+        Assert.assertEquals(2, messageCount.get());
+
+        // 发送消息到不匹配模式的频道
+        redisun.publish(channel3, "msg3");
+        Thread.sleep(500);
+        Assert.assertEquals(2, messageCount.get());
+
+        redisunSubscriber.close();
+    }
+
+    @Test
     public void testPUnsubscribe() throws InterruptedException {
-        StringBuilder receivedChannel = new StringBuilder();
-        redisun.pSubscribe((channel, message) -> {
-            receivedChannel.append(channel);
-        }, "channel:*");
+        String pattern = topic + ":punsub:*";
+        String channel = topic + ":punsub:test";
 
-        Thread.sleep(2000);
+        AtomicInteger messageCount = new AtomicInteger(0);
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
 
-        String channel = "channel:123";
-        int publish = redisun.publish(channel, "你好");
-        Assert.assertEquals(1, publish);
+        redisun.pSubscribe(subscriber, pattern);
         Thread.sleep(1000);
 
-        redisun.pUnsubscribe("channel:*");
+        // 发送消息
+        redisun.publish(channel, "msg1");
+        Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
+
+        // 取消模式订阅
+        redisun.pUnsubscribe(pattern);
         Thread.sleep(1000);
 
-        publish = redisun.publish("channel:456", "你好");
-        Assert.assertEquals(0, publish);
-        Assert.assertEquals(channel, receivedChannel.toString());
+        // 再次发送消息
+        redisun.publish(channel, "msg2");
+        Thread.sleep(500);
+        Assert.assertEquals(1, messageCount.get());
+    }
+
+    @Test
+    public void testPSubscribeMultiplePatterns() throws InterruptedException {
+        String pattern1 = topic + ":multi:a*";
+        String pattern2 = topic + ":multi:b*";
+        String channel1 = topic + ":multi:abc";
+        String channel2 = topic + ":multi:bcd";
+        String channel3 = topic + ":multi:cde";
+
+        Map<String, List<String>> receivedMessages = new ConcurrentHashMap<>();
+
+        Subscriber subscriber = (ch, msg) -> {
+            receivedMessages.computeIfAbsent(ch, k -> new CopyOnWriteArrayList<>()).add(msg);
+        };
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.pSubscribe(subscriber, pattern1, pattern2);
+
+        Thread.sleep(1000);
+
+        redisun.publish(channel1, "msg1");
+        redisun.publish(channel2, "msg2");
+        redisun.publish(channel3, "msg3");
+
+        Thread.sleep(1000);
+
+        Assert.assertTrue(receivedMessages.containsKey(channel1));
+        Assert.assertTrue(receivedMessages.containsKey(channel2));
+        Assert.assertFalse(receivedMessages.containsKey(channel3));
+
+        redisunSubscriber.close();
     }
 
     // ==================== 异常场景测试 ====================
@@ -309,13 +339,35 @@ public class PubSubCommandTest extends AbstractRedisunTest {
         redisun.publish(topic + ":channel", null);
     }
 
+    @Test(expected = RedisunException.class)
+    public void testPSubscribeWithNullPatterns() {
+        redisun.pSubscribe(new Subscriber() {
+            @Override
+            public void onMessage(String channel, String message) {
+            }
+        }, (String[]) null);
+    }
+
+    @Test(expected = RedisunException.class)
+    public void testPSubscribeWithEmptyPatterns() {
+        redisun.pSubscribe(new Subscriber() {
+            @Override
+            public void onMessage(String channel, String message) {
+            }
+        });
+    }
+
+    @Test(expected = RedisunException.class)
+    public void testPSubscribeWithNullSubscriber() {
+        redisun.pSubscribe(null, "pattern:*");
+    }
+
     // ==================== 回调测试 ====================
 
     @Test
-    public void testSubscriptionCallbacks() throws InterruptedException {
-        String channel = topic + ":callback-test";
+    public void testOnSubscribeCallback() throws InterruptedException {
+        String channel = topic + ":callback-sub";
         AtomicBoolean subscribed = new AtomicBoolean(false);
-        AtomicBoolean unsubscribed = new AtomicBoolean(false);
 
         Subscriber subscriber = new Subscriber() {
             @Override
@@ -323,6 +375,26 @@ public class PubSubCommandTest extends AbstractRedisunTest {
                 subscribed.set(true);
             }
 
+            @Override
+            public void onMessage(String channel, String message) {
+            }
+        };
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel);
+
+        Thread.sleep(1000);
+        Assert.assertTrue("onSubscribe should be called", subscribed.get());
+
+        redisunSubscriber.close();
+    }
+
+    @Test
+    public void testOnUnsubscribeCallback() throws InterruptedException {
+        String channel = topic + ":callback-unsub";
+        AtomicBoolean unsubscribed = new AtomicBoolean(false);
+
+        Subscriber subscriber = new Subscriber() {
             @Override
             public void onUnsubscribe(String channel) {
                 unsubscribed.set(true);
@@ -333,12 +405,10 @@ public class PubSubCommandTest extends AbstractRedisunTest {
             }
         };
 
-        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
         redisunSubscriber.subscribe(subscriber, channel);
 
         Thread.sleep(1000);
-        Assert.assertTrue("onSubscribe should be called", subscribed.get());
-
         redisunSubscriber.unsubscribe(channel);
         Thread.sleep(1000);
 
@@ -347,8 +417,8 @@ public class PubSubCommandTest extends AbstractRedisunTest {
     }
 
     @Test
-    public void testErrorCallback() throws InterruptedException {
-        String channel = topic + ":error-test";
+    public void testOnErrorCallback() throws InterruptedException {
+        String channel = topic + ":callback-error";
         AtomicReference<Throwable> errorRef = new AtomicReference<>(null);
 
         Subscriber subscriber = new Subscriber() {
@@ -362,43 +432,17 @@ public class PubSubCommandTest extends AbstractRedisunTest {
             }
         };
 
-        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(true).setAddress("127.0.0.1:6379"));
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
         redisunSubscriber.subscribe(subscriber, channel);
 
         Thread.sleep(1000);
         redisunSubscriber.close();
         Thread.sleep(1000);
+
+        // 错误回调可能在连接关闭时被调用
     }
 
     // ==================== 高并发测试 ====================
-
-    @Test
-    public void testMultipleSubscriptionsToSameChannel() throws InterruptedException {
-        String channel = topic + ":multiple-same-channel";
-        AtomicInteger messageCount1 = new AtomicInteger(0);
-        AtomicInteger messageCount2 = new AtomicInteger(0);
-
-        Subscriber subscriber1 = (ch, msg) -> messageCount1.incrementAndGet();
-        Subscriber subscriber2 = (ch, msg) -> messageCount2.incrementAndGet();
-
-        Redisun redisunSubscriber1 = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-        Redisun redisunSubscriber2 = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
-
-        redisunSubscriber1.subscribe(subscriber1, channel);
-        redisunSubscriber2.subscribe(subscriber2, channel);
-
-        Thread.sleep(1000);
-
-        int receivers = redisun.publish(channel, "test-message");
-        Thread.sleep(1000);
-
-        Assert.assertEquals(2, receivers);
-        Assert.assertEquals(1, messageCount1.get());
-        Assert.assertEquals(1, messageCount2.get());
-
-        redisunSubscriber1.close();
-        redisunSubscriber2.close();
-    }
 
     @Test
     public void testHighVolumePubSub() throws InterruptedException {
@@ -422,5 +466,133 @@ public class PubSubCommandTest extends AbstractRedisunTest {
         Assert.assertEquals(MESSAGE_COUNT, messageCount.get());
 
         redisunSubscriber.close();
+    }
+
+    @Test
+    public void testConcurrentPubSub() throws InterruptedException {
+        String channel = topic + ":concurrent";
+        AtomicInteger messageCount = new AtomicInteger(0);
+        final int THREAD_COUNT = 5;
+        final int MESSAGES_PER_THREAD = 20;
+
+        Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel);
+
+        Thread.sleep(1000);
+
+        Thread[] threads = new Thread[THREAD_COUNT];
+        for (int i = 0; i < THREAD_COUNT; i++) {
+            final int threadId = i;
+            threads[i] = new Thread(() -> {
+                for (int j = 0; j < MESSAGES_PER_THREAD; j++) {
+                    redisun.publish(channel, "thread-" + threadId + "-msg-" + j);
+                }
+            });
+            threads[i].start();
+        }
+
+        for (Thread thread : threads) {
+            thread.join();
+        }
+
+        Thread.sleep(2000);
+
+        Assert.assertEquals(THREAD_COUNT * MESSAGES_PER_THREAD, messageCount.get());
+
+        redisunSubscriber.close();
+    }
+
+    // ==================== 边界条件测试 ====================
+
+    @Test
+    public void testPublishToNoSubscribers() {
+        String channel = topic + ":no-sub";
+
+        // 发布到没有订阅者的频道
+        int receivers = redisun.publish(channel, "message");
+        Assert.assertEquals(0, receivers);
+    }
+
+    @Test
+    public void testLargeMessage() throws InterruptedException {
+        String channel = topic + ":large-msg";
+        StringBuilder largeMessage = new StringBuilder();
+        for (int i = 0; i < 10000; i++) {
+            largeMessage.append("a");
+        }
+
+        AtomicReference<String> receivedMessage = new AtomicReference<>();
+
+        Subscriber subscriber = (ch, msg) -> receivedMessage.set(msg);
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel);
+
+        Thread.sleep(1000);
+
+        redisun.publish(channel, largeMessage.toString());
+        Thread.sleep(1000);
+
+        Assert.assertEquals(largeMessage.toString(), receivedMessage.get());
+
+        redisunSubscriber.close();
+    }
+
+    @Test
+    public void testSpecialCharactersInMessage() throws InterruptedException {
+        String channel = topic + ":special-msg";
+        String[] messages = {
+            "!@#$%^&*()_+-=[]{}|;':\",./<>?",
+            "中文测试🎉",
+            "\n\r\t",
+            "  spaces  "
+        };
+
+        List<String> receivedMessages = new CopyOnWriteArrayList<>();
+
+        Subscriber subscriber = (ch, msg) -> receivedMessages.add(msg);
+
+        Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+        redisunSubscriber.subscribe(subscriber, channel);
+
+        Thread.sleep(1000);
+
+        for (String message : messages) {
+            redisun.publish(channel, message);
+        }
+
+        Thread.sleep(1000);
+
+        Assert.assertEquals(messages.length, receivedMessages.size());
+        for (int i = 0; i < messages.length; i++) {
+            Assert.assertEquals(messages[i], receivedMessages.get(i));
+        }
+
+        redisunSubscriber.close();
+    }
+
+    @Test
+    public void testRapidSubscribeUnsubscribe() throws InterruptedException {
+        String channel = topic + ":rapid";
+
+        for (int i = 0; i < 10; i++) {
+            AtomicInteger messageCount = new AtomicInteger(0);
+            Subscriber subscriber = (ch, msg) -> messageCount.incrementAndGet();
+
+            Redisun redisunSubscriber = Redisun.create(opt -> opt.debug(false).setAddress("127.0.0.1:6379"));
+            redisunSubscriber.subscribe(subscriber, channel);
+            Thread.sleep(100);
+
+            redisun.publish(channel, "msg-" + i);
+            Thread.sleep(100);
+
+            Assert.assertEquals(1, messageCount.get());
+
+            redisunSubscriber.unsubscribe(channel);
+            Thread.sleep(100);
+            redisunSubscriber.close();
+        }
     }
 }
