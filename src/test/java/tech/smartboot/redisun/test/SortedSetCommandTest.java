@@ -300,9 +300,11 @@ public class SortedSetCommandTest extends AbstractRedisunTest {
             redisun.zadd(key, 5.0, "same-score-" + i);
         }
         List<String> result = redisun.zrange(key, 0, -1);
-        Assert.assertTrue(result.size() >= 10);
+        // 此时应该有: 空字符串 + 空格 + 特殊字符 + Unicode + 10个相同分数成员 = 14个
+        Assert.assertEquals(14, result.size());
 
-        // 测试大量成员
+        // 测试大量成员 - 先清空集合再测试
+        redisun.del(key);
         for (int i = 0; i < 1000; i++) {
             redisun.zadd(key, i, "member" + i);
         }

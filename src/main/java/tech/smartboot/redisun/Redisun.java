@@ -260,8 +260,10 @@ public final class Redisun {
      */
     private CompletableFuture<Double> asyncZscore(String key, String member) {
         return execute(new SimpleCommand(SimpleCommand.CONSTANTS_ZSCORE, RESP.ofString(key), RESP.ofString(member))).thenApply(resp -> {
-            if (resp instanceof BulkStrings) {
+            if (resp instanceof BulkStrings) { //RESP 2
                 return Double.valueOf(((BulkStrings) resp).getValue());
+            } else if (resp instanceof Doubles) { //RESP 3
+                return ((Doubles) resp).getValue();
             } else if (resp instanceof Nulls) {
                 return null;
             }
