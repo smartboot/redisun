@@ -16,7 +16,6 @@ import tech.smartboot.redisun.resp.Doubles;
 import tech.smartboot.redisun.resp.Integers;
 import tech.smartboot.redisun.resp.Nulls;
 import tech.smartboot.redisun.resp.RESP;
-import tech.smartboot.redisun.resp.SimpleErrors;
 import tech.smartboot.redisun.resp.SimpleStrings;
 
 import java.io.IOException;
@@ -94,7 +93,7 @@ public final class Redisun {
                 helloCommand.setUsername(options.getUsername());
                 helloCommand.setPassword(options.getPassword());
                 try {
-                    syncExecute(helloCommand);
+                    get(execute(helloCommand));
                 } catch (RedisunException e) {
                     String message = e.getMessage();
                     if (message != null && message.contains("ERR unknown command 'HELLO'")) {
@@ -106,7 +105,7 @@ public final class Redisun {
 
                 // 如果配置的数据库不为0，则自动切换数据库
                 if (options.getDatabase() != 0) {
-                    syncExecute(new SimpleCommand(SimpleCommand.CONSTANTS_SELECT, RESP.ofString(String.valueOf(options.getDatabase()))));
+                    get(execute(new SimpleCommand(SimpleCommand.CONSTANTS_SELECT, RESP.ofString(String.valueOf(options.getDatabase())))));
                 }
             }
         };
@@ -147,12 +146,7 @@ public final class Redisun {
      * @return 包含被成功添加的新成员数量的CompletableFuture
      */
     public CompletableFuture<Integer> asyncZadd(String key, double score, String member) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_ZADD, RESP.ofString(key), RESP.ofString(String.valueOf(score)), RESP.ofString(member))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_ZADD, RESP.ofString(key), RESP.ofString(String.valueOf(score)), RESP.ofString(member))).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -180,12 +174,7 @@ public final class Redisun {
         for (int i = 0; i < members.length; i++) {
             params[i + 2] = RESP.ofString(members[i]);
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -298,14 +287,7 @@ public final class Redisun {
      * @return 键对应的值，如果键不存在则返回null
      */
     public CompletableFuture<String> asyncGet(String key) {
-        return execute(new GetCommand(key)).thenApply(r -> {
-            if (r instanceof BulkStrings) {
-                return ((BulkStrings) r).getValue();
-            } else if (r instanceof Nulls) {
-                return null;
-            }
-            throw new RedisunException("invalid response:" + r);
-        });
+        return execute(new GetCommand(key)).thenApply(BULK_STRING_FUTURE);
     }
 
     /**
@@ -370,6 +352,31 @@ public final class Redisun {
         }
     };
 
+    private static final Function<RESP, Boolean> OK_FUTURE = resp -> {
+        if (resp instanceof SimpleStrings) {
+            return SimpleStrings.OK.equals(((SimpleStrings) resp).getValue());
+        }
+        throw new RedisunException("invalid response:" + resp);
+    };
+
+    private static final Function<RESP, Integer> INTEGER_FUTURE = resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    };
+
+    private static final Function<RESP, Long> LONG_FUTURE = resp -> INTEGER_FUTURE.apply(resp).longValue();
+
+    private static final Function<RESP, String> BULK_STRING_FUTURE = resp -> {
+        if (resp instanceof Nulls) {
+            return null;
+        } else if (resp instanceof BulkStrings) {
+            return ((BulkStrings) resp).getValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    };
+
     /**
      * 同时获取一个或多个 key 的值
      *
@@ -417,11 +424,7 @@ public final class Redisun {
      * @return 当前数据库中键的数量
      */
     public long dbsize() {
-        RESP r = syncExecute(new SimpleCommand(SimpleCommand.CONSTANTS_DBSIZE));
-        if (r instanceof Integers) {
-            return ((Integers) r).getValue();
-        }
-        throw new RedisunException("invalid response:" + r);
+        return get(execute(new SimpleCommand(SimpleCommand.CONSTANTS_DBSIZE)).thenApply(INTEGER_FUTURE));
     }
 
     /**
@@ -456,34 +459,7 @@ public final class Redisun {
         for (int i = 0; i < keys.size(); i++) {
             params[i + 1] = RESP.ofString(keys.get(i));
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
-    }
-
-
-    /**
-     * 同步执行Redis命令
-     *
-     * @param command 要执行的Redis命令
-     * @return 命令执行结果
-     */
-    private RESP syncExecute(Command command) {
-        RESP resp;
-        try {
-            // 执行命令并等待结果
-            resp = execute(command).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
-        // 处理错误响应
-        if (resp instanceof SimpleErrors) {
-            throw new RedisunException(((SimpleErrors) resp).getValue());
-        }
-        return resp;
+        return execute(new SimpleCommand(params)).thenApply(INTEGER_FUTURE);
     }
 
     private <T> T get(CompletableFuture<T> future) {
@@ -564,11 +540,7 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public boolean flushAll() {
-        RESP r = syncExecute(new SimpleCommand(SimpleCommand.CONSTANTS_FLUSHALL));
-        if (r instanceof SimpleStrings) {
-            return SimpleStrings.OK.equals(((SimpleStrings) r).getValue());
-        }
-        throw new RedisunException("invalid response:" + r);
+        return get(execute(new SimpleCommand(SimpleCommand.CONSTANTS_FLUSHALL)).thenApply(OK_FUTURE));
     }
 
     /**
@@ -577,11 +549,7 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public boolean flushDb() {
-        RESP r = syncExecute(new SimpleCommand(SimpleCommand.CONSTANTS_FLUSHDB));
-        if (r instanceof SimpleStrings) {
-            return SimpleStrings.OK.equals(((SimpleStrings) r).getValue());
-        }
-        throw new RedisunException("invalid response:" + r);
+        return get(execute(new SimpleCommand(SimpleCommand.CONSTANTS_FLUSHDB)).thenApply(OK_FUTURE));
     }
 
     /**
@@ -608,12 +576,7 @@ public final class Redisun {
             params[i++] = RESP.ofString(entry.getKey());
             params[i++] = RESP.ofString(entry.getValue());
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof SimpleStrings) {
-                return SimpleStrings.OK.equals(((SimpleStrings) resp).getValue());
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(OK_FUTURE);
     }
 
     /**
@@ -655,12 +618,7 @@ public final class Redisun {
         for (int i = 0; i < members.length; i++) {
             params[i + 2] = RESP.ofString(members[i]);
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -688,12 +646,7 @@ public final class Redisun {
         for (int i = 0; i < values.length; i++) {
             params[i + 2] = RESP.ofString(values[i]);
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -721,12 +674,7 @@ public final class Redisun {
         for (int i = 0; i < values.length; i++) {
             params[i + 2] = RESP.ofString(values[i]);
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -748,14 +696,7 @@ public final class Redisun {
      * @return 返回给定字段的值，如果字段不存在则返回null
      */
     public CompletableFuture<String> asyncHget(String key, String field) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_HGET, RESP.ofString(key), RESP.ofString(field))).thenApply(resp -> {
-            if (resp instanceof Nulls) {
-                return null;
-            } else if (resp instanceof BulkStrings) {
-                return ((BulkStrings) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_HGET, RESP.ofString(key), RESP.ofString(field))).thenApply(BULK_STRING_FUTURE);
     }
 
     /**
@@ -781,12 +722,7 @@ public final class Redisun {
      * 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回 0
      */
     public CompletableFuture<Integer> asyncHset(String key, String field, String value) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_HSET, RESP.ofString(key), RESP.ofString(field), RESP.ofString(value))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_HSET, RESP.ofString(key), RESP.ofString(field), RESP.ofString(value))).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -816,12 +752,7 @@ public final class Redisun {
             params[i++] = RESP.ofString(entry.getKey());
             params[i++] = RESP.ofString(entry.getValue());
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof SimpleStrings) {
-                return SimpleStrings.OK.equals(((SimpleStrings) resp).getValue());
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(OK_FUTURE);
     }
 
     /**
@@ -907,12 +838,7 @@ public final class Redisun {
      * @return 字符串值的长度
      */
     public CompletableFuture<Integer> asyncStrlen(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_STRLEN, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_STRLEN, RESP.ofString(key))).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -935,12 +861,7 @@ public final class Redisun {
      * @return 追加操作后 key 中字符串的长度
      */
     public CompletableFuture<Integer> asyncAppend(String key, String value) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_APPEND, BulkStrings.ofString(key), BulkStrings.ofString(value))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_APPEND, BulkStrings.ofString(key), BulkStrings.ofString(value))).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -960,12 +881,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public CompletableFuture<Long> asyncDecr(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_DECR, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_DECR, RESP.ofString(key))).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -987,12 +903,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public CompletableFuture<Long> asyncDecrBy(String key, long decrement) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_DECRBY, RESP.ofString(key), RESP.ofString(String.valueOf(decrement)))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_DECRBY, RESP.ofString(key), RESP.ofString(String.valueOf(decrement)))).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -1012,12 +923,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public CompletableFuture<Long> asyncIncr(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_INCR, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_INCR, RESP.ofString(key))).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -1039,12 +945,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public CompletableFuture<Long> asyncIncrBy(String key, long increment) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_INCRBY, RESP.ofString(key), RESP.ofString(String.valueOf(increment)))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_INCRBY, RESP.ofString(key), RESP.ofString(String.valueOf(increment)))).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -1069,12 +970,7 @@ public final class Redisun {
         for (int i = 0; i < keys.length; i++) {
             params[i + 1] = RESP.ofString(keys[i]);
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -1113,12 +1009,7 @@ public final class Redisun {
         if (options != null) {
             options.accept(cmd);
         }
-        return execute(cmd).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(cmd).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -1138,12 +1029,7 @@ public final class Redisun {
      * @return 剩余过期时间（秒），-1表示没有设置过期时间，-2表示键不存在
      */
     public CompletableFuture<Long> asyncTtl(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_TTL, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue().longValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_TTL, RESP.ofString(key))).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -1188,14 +1074,7 @@ public final class Redisun {
      * @return 列表的头部元素，如果列表为空则返回null
      */
     public CompletableFuture<String> asyncLpop(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_LPOP, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Nulls) {
-                return null;
-            } else if (resp instanceof BulkStrings) {
-                return ((BulkStrings) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_LPOP, RESP.ofString(key))).thenApply(BULK_STRING_FUTURE);
     }
 
     /**
@@ -1215,14 +1094,7 @@ public final class Redisun {
      * @return 列表的尾部元素，如果列表为空则返回null
      */
     public CompletableFuture<String> asyncRpop(String key) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_RPOP, RESP.ofString(key))).thenApply(resp -> {
-            if (resp instanceof Nulls) {
-                return null;
-            } else if (resp instanceof BulkStrings) {
-                return ((BulkStrings) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_RPOP, RESP.ofString(key))).thenApply(BULK_STRING_FUTURE);
     }
 
     /**
@@ -1244,12 +1116,7 @@ public final class Redisun {
      * @return 接收到此消息的客户端数量
      */
     public CompletableFuture<Integer> asyncPublish(String channel, String message) {
-        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_PUBLISH, RESP.ofString(channel), RESP.ofString(message))).thenApply(resp -> {
-            if (resp instanceof Integers) {
-                return ((Integers) resp).getValue();
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_PUBLISH, RESP.ofString(channel), RESP.ofString(message))).thenApply(INTEGER_FUTURE);
     }
 
     private synchronized RedisunPubSub redisunPubSub() throws Throwable {
