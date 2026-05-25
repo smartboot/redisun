@@ -90,6 +90,7 @@ public class BulkStrings extends RESP<String> {
                     if (readBuffer.remaining() >= 2) {
                         // 缓冲区中有足够的数据验证结束符
                         if (readBuffer.getShort() == CRLF_VALUE) {
+                            value = "";
                             // 成功读取空字符串
                             return true;
                         }
