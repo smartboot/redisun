@@ -1,14 +1,13 @@
-package tech.smartboot.redisun.cmd;
+package tech.smartboot.redisun;
 
 import io.github.smartboot.socket.transport.WriteBuffer;
-import tech.smartboot.redisun.Command;
 import tech.smartboot.redisun.resp.BulkStrings;
 import tech.smartboot.redisun.resp.RESP;
 
 import java.io.IOException;
 import java.util.List;
 
-public class SimpleCommand extends Command {
+class SimpleCommand extends Command {
     /**
      * Redis DECRBY 命令常量
      * <p>

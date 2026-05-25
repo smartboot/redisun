@@ -8,7 +8,6 @@ import tech.smartboot.redisun.cmd.ExpireCommand;
 import tech.smartboot.redisun.cmd.GetCommand;
 import tech.smartboot.redisun.cmd.HelloCommand;
 import tech.smartboot.redisun.cmd.SetCommand;
-import tech.smartboot.redisun.cmd.SimpleCommand;
 import tech.smartboot.redisun.cmd.ZRangeCommand;
 import tech.smartboot.redisun.resp.Arrays;
 import tech.smartboot.redisun.resp.BulkStrings;
