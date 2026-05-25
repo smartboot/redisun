@@ -135,11 +135,7 @@ public final class Redisun {
      * @return 被成功添加的新成员数量
      */
     public int zadd(String key, double score, String member) {
-        try {
-            return asyncZadd(key, score, member).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncZadd(key, score, member));
     }
 
     /**
@@ -167,11 +163,7 @@ public final class Redisun {
      * @return 被成功移除的成员数量
      */
     public long zrem(String key, String... members) {
-        try {
-            return asyncZrem(key, members).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncZrem(key, members));
     }
 
     /**
@@ -205,19 +197,11 @@ public final class Redisun {
      * @return 成员列表
      */
     public List<String> zrange(String key, long start, long stop) {
-        try {
-            return asyncZrange(key, start, stop).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncZrange(key, start, stop));
     }
 
     public List<ZRangeCommand.Tuple> zrange(String key, long start, long stop, Consumer<ZRangeCommand> options) {
-        try {
-            return asyncZrange(key, start, stop, options).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncZrange(key, start, stop, options));
     }
 
     /**
@@ -276,11 +260,7 @@ public final class Redisun {
      * @return 成员的分数，如果成员不存在则返回null
      */
     public Double zscore(String key, String member) {
-        try {
-            return asyncZscore(key, member).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncZscore(key, member));
     }
 
     /**
@@ -308,11 +288,7 @@ public final class Redisun {
      * @return 键对应的值，如果键不存在则返回null
      */
     public String get(String key) {
-        try {
-            return asyncGet(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncGet(key));
     }
 
     /**
@@ -352,11 +328,7 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public boolean set(String key, String value, Consumer<SetCommand> options) {
-        try {
-            return asyncSet(key, value, options).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncSet(key, value, options));
     }
 
     /**
@@ -405,11 +377,7 @@ public final class Redisun {
      * @return 包含所有键值的列表，不存在的键返回null
      */
     public List<String> mget(List<String> keys) {
-        try {
-            return asyncMget(keys).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncMget(keys));
     }
 
     /**
@@ -473,11 +441,7 @@ public final class Redisun {
      * @return 被成功删除的键数量
      */
     public int del(List<String> keys) {
-        try {
-            return asyncDel(keys).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncDel(keys));
     }
 
     /**
@@ -520,6 +484,14 @@ public final class Redisun {
             throw new RedisunException(((SimpleErrors) resp).getValue());
         }
         return resp;
+    }
+
+    private <T> T get(CompletableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
+        }
     }
 
     /**
@@ -619,11 +591,7 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public boolean mset(Map<String, String> items) {
-        try {
-            return asyncMset(items).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncMset(items));
     }
 
     /**
@@ -670,11 +638,7 @@ public final class Redisun {
      * @return 被成功添加到集合中的新元素数量，不包括已被添加的元素
      */
     public int sadd(String key, String... members) {
-        try {
-            return asyncSadd(key, members).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncSadd(key, members));
     }
 
     /**
@@ -707,11 +671,7 @@ public final class Redisun {
      * @return 执行后列表的长度
      */
     public long lpush(String key, String... values) {
-        try {
-            return asyncLpush(key, values).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncLpush(key, values));
     }
 
     /**
@@ -744,11 +704,7 @@ public final class Redisun {
      * @return 执行后列表的长度
      */
     public long rpush(String key, String... values) {
-        try {
-            return asyncRpush(key, values).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncRpush(key, values));
     }
 
     /**
@@ -781,11 +737,7 @@ public final class Redisun {
      * @return 返回给定字段的值，如果字段不存在则返回null
      */
     public String hget(String key, String field) {
-        try {
-            return asyncHget(key, field).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncHget(key, field));
     }
 
     /**
@@ -816,11 +768,7 @@ public final class Redisun {
      * 如果哈希表中域字段已经存在且旧值已被新值覆盖，返回0
      */
     public int hset(String key, String field, String value) {
-        try {
-            return asyncHset(key, field, value).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncHset(key, field, value));
     }
 
     /**
@@ -849,11 +797,7 @@ public final class Redisun {
      * @return 操作是否成功
      */
     public boolean hmset(String key, Map<String, String> hash) {
-        try {
-            return asyncHmset(key, hash).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncHmset(key, hash));
     }
 
     /**
@@ -888,11 +832,7 @@ public final class Redisun {
      * @return 包含所有字段值的列表，不存在的字段返回 null
      */
     public List<String> hmget(String key, List<String> fields) {
-        try {
-            return asyncHmget(key, fields).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncHmget(key, fields));
     }
 
     /**
@@ -957,11 +897,7 @@ public final class Redisun {
      * @return 字符串值的长度
      */
     public int strlen(String key) {
-        try {
-            return asyncStrlen(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncStrlen(key));
     }
 
     /**
@@ -987,11 +923,7 @@ public final class Redisun {
      * @return 追加操作后 key 中字符串的长度
      */
     public int append(String key, String value) {
-        try {
-            return asyncAppend(key, value).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncAppend(key, value));
     }
 
     /**
@@ -1018,11 +950,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public long decr(String key) {
-        try {
-            return asyncDecr(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncDecr(key));
     }
 
     /**
@@ -1048,11 +976,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public long decrBy(String key, long decrement) {
-        try {
-            return asyncDecrBy(key, decrement).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncDecrBy(key, decrement));
     }
 
     /**
@@ -1078,11 +1002,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public long incr(String key) {
-        try {
-            return asyncIncr(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncIncr(key));
     }
 
     /**
@@ -1108,11 +1028,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public long incrBy(String key, long increment) {
-        try {
-            return asyncIncrBy(key, increment).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncIncrBy(key, increment));
     }
 
     /**
@@ -1138,11 +1054,7 @@ public final class Redisun {
      * @return 存在的键数量
      */
     public int exists(String... keys) {
-        try {
-            return asyncExists(keys).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncExists(keys));
     }
 
     /**
@@ -1185,11 +1097,7 @@ public final class Redisun {
      * @return 设置成功返回 1，否则返回 0
      */
     public int expire(String key, int seconds, Consumer<ExpireCommand> options) {
-        try {
-            return asyncExpire(key, seconds, options).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncExpire(key, seconds, options));
     }
 
     /**
@@ -1220,11 +1128,7 @@ public final class Redisun {
      * @return 剩余过期时间（秒），-1表示没有设置过期时间，-2表示键不存在
      */
     public long ttl(String key) {
-        try {
-            return asyncTtl(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncTtl(key));
     }
 
     /**
@@ -1249,11 +1153,7 @@ public final class Redisun {
      * @return 键值的类型
      */
     public String type(String key) {
-        try {
-            return asyncType(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncType(key));
     }
 
     /**
@@ -1278,11 +1178,7 @@ public final class Redisun {
      * @return 列表的头部元素，如果列表为空则返回null
      */
     public String lpop(String key) {
-        try {
-            return asyncLpop(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncLpop(key));
     }
 
     /**
@@ -1309,11 +1205,7 @@ public final class Redisun {
      * @return 列表的尾部元素，如果列表为空则返回null
      */
     public String rpop(String key) {
-        try {
-            return asyncRpop(key).get();
-        } catch (Throwable e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncRpop(key));
     }
 
     /**
@@ -1341,11 +1233,7 @@ public final class Redisun {
      * @return 接收到此消息的客户端数量
      */
     public int publish(String channel, String message) {
-        try {
-            return asyncPublish(channel, message).get();
-        } catch (Exception e) {
-            throw new RedisunException(e);
-        }
+        return get(asyncPublish(channel, message));
     }
 
     /**
