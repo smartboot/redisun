@@ -30,7 +30,9 @@ public abstract class Command {
      * @return 包含命令参数的BulkStrings列表，遵循Redis协议规范
      * @see BulkStrings
      */
-    protected abstract List<BulkStrings> buildParams();
+    protected List<BulkStrings> buildParams() {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     public void writeTo(WriteBuffer writeBuffer) throws IOException {
         List params = buildParams();
