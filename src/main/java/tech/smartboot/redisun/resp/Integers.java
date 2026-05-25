@@ -28,7 +28,7 @@ import java.nio.ByteBuffer;
  * @version v1.0 10/21/25
  * @see <a href="https://redis.io/docs/latest/develop/reference/protocol-spec/#integers">RESP Integers Specification</a>
  */
-public class Integers extends RESP<Integer> {
+public class Integers extends RESP<Long> {
     // 解析状态常量
     private static final byte DECODE_STATE_INIT = 0;   // 初始化状态，读取符号位
     private static final byte DECODE_STATE_VALUE = 1;  // 读取数值状态
@@ -44,7 +44,7 @@ public class Integers extends RESP<Integer> {
                     return true;
                 }
             };
-            integers.setValue(i);
+            integers.setValue((long) i);
             ZERO_TO_NINES[i] = integers;
         }
     }
@@ -105,10 +105,14 @@ public class Integers extends RESP<Integer> {
                     break;
                 case DECODE_STATE_VALUE:
                     // 读取数值部分
-                    int v = readInt(readBuffer);
+                    long v = readLong(readBuffer);
                     if (v >= 0) {
                         state = DECODE_STATE_END;
                         value = isNegative ? -v : v;
+                        return true;
+                    } else if (v < Integer.MIN_VALUE) {
+                        value = v;
+                        isNegative = true;
                         return true;
                     }
                     return false;

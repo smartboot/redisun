@@ -362,12 +362,18 @@ public final class Redisun {
 
     private static final Function<RESP, Integer> INTEGER_FUTURE = resp -> {
         if (resp instanceof Integers) {
-            return ((Integers) resp).getValue();
+            return ((Integers) resp).getValue().intValue();
         }
         throw new RedisunException("invalid response:" + resp);
     };
 
-    private static final Function<RESP, Long> LONG_FUTURE = resp -> INTEGER_FUTURE.apply(resp).longValue();
+    private static final Function<RESP, Long> LONG_FUTURE = resp -> {
+        if (resp instanceof Integers) {
+            return ((Integers) resp).getValue().longValue();
+        }
+        throw new RedisunException("invalid response:" + resp);
+    };
+
 
     private static final Function<RESP, String> BULK_STRING_FUTURE = resp -> {
         if (resp instanceof Nulls) {

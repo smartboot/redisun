@@ -107,7 +107,11 @@ public abstract class RESP<T> implements Serialization {
      * @throws RedisunException 当数据格式错误时抛出异常
      */
     protected int readInt(ByteBuffer readBuffer) {
-        int v = 0;
+        return (int) readLong(readBuffer);
+    }
+
+    protected long readLong(ByteBuffer readBuffer) {
+        long v = 0;
         readBuffer.mark();
         while (readBuffer.remaining() >= 2) {
             byte b = readBuffer.get();
@@ -125,22 +129,23 @@ public abstract class RESP<T> implements Serialization {
         return -1;
     }
 
-    public static void writeInt(WriteBuffer out, int value) throws IOException {
+    public static void writeInt(WriteBuffer out, long value) throws IOException {
         if (value < 0) {
             out.write('-');
             value = -value;
         }
 
         if (value < FAST_INT_WRITE.length) {
-            out.write(FAST_INT_WRITE[value]);
+            out.write(FAST_INT_WRITE[(int) value]);
         } else if (value < 1000) {
-            out.write('0' + value / 100);
-            out.write('0' + value / 10 % 10);
-            out.write('0' + value % 10);
+            int v = (int) value;
+            out.write('0' + v / 100);
+            out.write('0' + v / 10 % 10);
+            out.write('0' + v % 10);
             out.write(RESP.CRLF);
         } else {
             // 用于存储转换后的数字字符
-            byte[] buffer = new byte[10]; // 最大的 int 有 10 位
+            byte[] buffer = new byte[value > Integer.MAX_VALUE ? 20 : 10]; // 最大的 int 有 10 位
             int pos = 10;
             while (value != 0) {
                 buffer[--pos] = (byte) ('0' + (value % 10));
@@ -214,11 +219,6 @@ public abstract class RESP<T> implements Serialization {
         return bulkStringResponse;
     }
 
-    public static Integers ofInteger(int value) {
-        Integers integers = new Integers();
-        integers.setValue(value);
-        return integers;
-    }
 
     /**
      * 创建包含指定RESP列表的Arrays对象

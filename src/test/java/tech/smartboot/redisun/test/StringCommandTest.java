@@ -2,7 +2,6 @@ package tech.smartboot.redisun.test;
 
 import org.junit.Assert;
 import org.junit.Test;
-import tech.smartboot.redisun.Redisun;
 import tech.smartboot.redisun.RedisunException;
 
 import java.util.Arrays;
@@ -436,10 +435,10 @@ public class StringCommandTest extends AbstractRedisunTest {
         Assert.assertEquals("async-value", getFuture.get());
 
         CompletableFuture<Integer> appendFuture = redisun.asyncAppend(key, "-suffix");
-        Assert.assertEquals(Integer.valueOf(14), appendFuture.get());
+        Assert.assertEquals(Integer.valueOf(18), appendFuture.get());
 
         CompletableFuture<Integer> strlenFuture = redisun.asyncStrlen(key);
-        Assert.assertEquals(Integer.valueOf(14), strlenFuture.get());
+        Assert.assertEquals(Integer.valueOf(18), strlenFuture.get());
 
         redisun.set(key, "0");
         CompletableFuture<Long> incrFuture = redisun.asyncIncr(key);
