@@ -48,21 +48,27 @@ public class ConnectionErrorTest extends AbstractRedisunTest {
         }
     }
 
-    @Test(expected = RedisunException.class)
+    @Test
     public void testInvalidDatabaseIndex() {
         Redisun invalidDb = Redisun.create(opt -> opt.setAddress("127.0.0.1:6379").setDatabase(999));
         try {
             invalidDb.set("key", "value");
+            Assert.fail("Should throw authentication error");
+        } catch (RedisunException e) {
+            Assert.assertEquals("ERR DB index is out of range", e.getMessage());
         } finally {
             invalidDb.close();
         }
     }
 
-    @Test(expected = RedisunException.class)
+    @Test
     public void testNegativeDatabaseIndex() {
         Redisun invalidDb = Redisun.create(opt -> opt.setAddress("127.0.0.1:6379").setDatabase(-1));
         try {
             invalidDb.set("key", "value");
+            Assert.fail("Should throw authentication error");
+        } catch (RedisunException e) {
+            Assert.assertEquals("ERR DB index is out of range", e.getMessage());
         } finally {
             invalidDb.close();
         }
@@ -75,9 +81,10 @@ public class ConnectionErrorTest extends AbstractRedisunTest {
         // 如果Redis配置了密码，测试错误密码
         // 注意：此测试需要Redis配置密码才能有效
         try {
-            Redisun authRedisun = Redisun.create(opt -> 
-                opt.setAddress("127.0.0.1:6379")
-                   .setPassword("wrong-password")
+            Redisun authRedisun = Redisun.create(opt ->
+                    opt.setAddress("127.0.0.1:6379")
+                            .debug(true)
+                            .setPassword("wrong-password")
             );
             authRedisun.set("key", "value");
             Assert.fail("Should throw authentication error");

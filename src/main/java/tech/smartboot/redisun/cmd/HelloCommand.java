@@ -35,6 +35,8 @@ public final class HelloCommand extends Command {
             param.add(CONSTANTS_AUTH);
             if (username != null) {
                 param.add(RESP.ofString(username));
+            }else{
+                param.add(RESP.ofString(""));
             }
             param.add(RESP.ofString(password));
         }
