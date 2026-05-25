@@ -4,9 +4,7 @@ import io.github.smartboot.socket.buffer.BufferPagePool;
 import io.github.smartboot.socket.extension.multiplex.MultiplexClient;
 import io.github.smartboot.socket.transport.AioQuickClient;
 import io.github.smartboot.socket.transport.AioSession;
-import tech.smartboot.redisun.cmd.AppendCommand;
 import tech.smartboot.redisun.cmd.DBSizeCommand;
-import tech.smartboot.redisun.cmd.DecrByCommand;
 import tech.smartboot.redisun.cmd.DecrCommand;
 import tech.smartboot.redisun.cmd.DelCommand;
 import tech.smartboot.redisun.cmd.ExistsCommand;
@@ -16,9 +14,9 @@ import tech.smartboot.redisun.cmd.FlushDbCommand;
 import tech.smartboot.redisun.cmd.GetCommand;
 import tech.smartboot.redisun.cmd.HGetCommand;
 import tech.smartboot.redisun.cmd.HSetCommand;
+import tech.smartboot.redisun.cmd.HelloCommand;
 import tech.smartboot.redisun.cmd.HmGetCommand;
 import tech.smartboot.redisun.cmd.HmSetCommand;
-import tech.smartboot.redisun.cmd.HelloCommand;
 import tech.smartboot.redisun.cmd.IncrByCommand;
 import tech.smartboot.redisun.cmd.IncrCommand;
 import tech.smartboot.redisun.cmd.LPopCommand;
@@ -33,6 +31,7 @@ import tech.smartboot.redisun.cmd.RPushCommand;
 import tech.smartboot.redisun.cmd.SAddCommand;
 import tech.smartboot.redisun.cmd.SelectCommand;
 import tech.smartboot.redisun.cmd.SetCommand;
+import tech.smartboot.redisun.cmd.SimpleCommand;
 import tech.smartboot.redisun.cmd.StrlenCommand;
 import tech.smartboot.redisun.cmd.SubscribeCommand;
 import tech.smartboot.redisun.cmd.TtlCommand;
@@ -818,7 +817,7 @@ public final class Redisun {
             throw new RedisunException("invalid response:" + resp);
         });
     }
-    
+
     /**
      * 同时将多个 field-value (域 - 值) 对设置到哈希表中
      *
@@ -833,7 +832,7 @@ public final class Redisun {
             throw new RedisunException(e);
         }
     }
-    
+
     /**
      * 同时将多个 field-value (域 - 值) 对设置到哈希表中（异步版本）
      *
@@ -849,7 +848,7 @@ public final class Redisun {
             throw new RedisunException("invalid response:" + resp);
         });
     }
-    
+
     /**
      * 返回哈希表中指定字段的值
      *
@@ -864,7 +863,7 @@ public final class Redisun {
             throw new RedisunException(e);
         }
     }
-    
+
     /**
      * 返回哈希表中指定字段的值
      *
@@ -875,7 +874,7 @@ public final class Redisun {
     public List<String> hmget(String key, String... fields) {
         return hmget(key, java.util.Arrays.asList(fields));
     }
-    
+
     /**
      * 返回哈希表中指定字段的值（异步版本）
      *
@@ -902,7 +901,7 @@ public final class Redisun {
             throw new RedisunException("invalid response:" + resp);
         });
     }
-    
+
     /**
      * 返回哈希表中指定字段的值（异步版本）
      *
@@ -951,11 +950,11 @@ public final class Redisun {
      * @return 追加操作后 key 中字符串的长度
      */
     public int append(String key, String value) {
-        RESP r = syncExecute(new AppendCommand(key, value));
-        if (r instanceof Integers) {
-            return ((Integers) r).getValue();
+        try {
+            return asyncAppend(key, value).get();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
         }
-        throw new RedisunException("invalid response:" + r);
     }
 
     /**
@@ -967,7 +966,7 @@ public final class Redisun {
      * @return 追加操作后 key 中字符串的长度
      */
     public CompletableFuture<Integer> asyncAppend(String key, String value) {
-        return execute(new AppendCommand(key, value)).thenApply(resp -> {
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_APPEND, BulkStrings.ofString(key), BulkStrings.ofString(value))).thenApply(resp -> {
             if (resp instanceof Integers) {
                 return ((Integers) resp).getValue();
             }
@@ -1012,11 +1011,11 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public long decrBy(String key, long decrement) {
-        RESP r = syncExecute(new DecrByCommand(key, decrement));
-        if (r instanceof Integers) {
-            return ((Integers) r).getValue();
+        try {
+            return asyncDecrBy(key, decrement).get();
+        } catch (Throwable e) {
+            throw new RedisunException(e);
         }
-        throw new RedisunException("invalid response:" + r);
     }
 
     /**
@@ -1027,7 +1026,7 @@ public final class Redisun {
      * @return 执行命令后 key 的值
      */
     public CompletableFuture<Long> asyncDecrBy(String key, long decrement) {
-        return execute(new DecrByCommand(key, decrement)).thenApply(resp -> {
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_DECRBY, RESP.ofString(key), RESP.ofString(String.valueOf(decrement)))).thenApply(resp -> {
             if (resp instanceof Integers) {
                 return ((Integers) resp).getValue().longValue();
             }
@@ -1351,6 +1350,7 @@ public final class Redisun {
 
     /**
      * 取消订阅给定的一个或多个频道
+     *
      * @param channels 要取消订阅的频道列表，如果为空则取消所有 频道订阅
      */
     public void unsubscribe(String... channels) {
@@ -1427,6 +1427,7 @@ public final class Redisun {
 
     /**
      * 取消订阅给定的一个或多个频道的模式
+     *
      * @param patterns 要取消订阅的模式列表，如果为空则取消所有 模式订阅
      */
     public void pUnsubscribe(String... patterns) {
