@@ -172,7 +172,7 @@ public abstract class RESP<T> implements Serialization {
             case RESP_DATA_TYPE_INTEGER:
                 return Integers.of(buffer);
             case RESP_DATA_TYPE_DOUBLE:
-                return Doubles.of(buffer);
+                return new Doubles();
             case RESP_DATA_TYPE_STRING:
                 return SimpleStrings.of(buffer);
             case RESP_DATA_TYPE_ARRAY:

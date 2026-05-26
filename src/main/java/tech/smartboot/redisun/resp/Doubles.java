@@ -12,10 +12,6 @@ public class Doubles extends RESP<Double> {
     private static final byte DECODE_STATE_VALUE = 1;  // 读取数值状态
     private static final byte DECODE_STATE_END = 2;    // 解析完成状态
 
-    public static Doubles of(ByteBuffer readBuffer) {
-        return new Doubles();
-    }
-
     // 当前解析状态
     private byte state = DECODE_STATE_VALUE;
 
@@ -26,7 +22,7 @@ public class Doubles extends RESP<Double> {
      * 私有构造函数，防止外部直接实例化
      * 应该通过RESP.newInstance()方法创建实例
      */
-    private Doubles() {
+    Doubles() {
     }
 
     /**
@@ -45,7 +41,7 @@ public class Doubles extends RESP<Double> {
     public boolean decode(ByteBuffer readBuffer) {
         while (readBuffer.hasRemaining()) {
             byte b = readBuffer.get();
-            
+
             switch (state) {
                 case DECODE_STATE_INIT:
                     if (b != ',') {
@@ -53,7 +49,7 @@ public class Doubles extends RESP<Double> {
                     }
                     state = DECODE_STATE_VALUE;
                     break;
-                    
+
                 case DECODE_STATE_VALUE:
                     if (b == CR) {
                         // 准备读取LF
@@ -63,7 +59,7 @@ public class Doubles extends RESP<Double> {
                         valueBuilder.append((char) b);
                     }
                     break;
-                    
+
                 case DECODE_STATE_END:
                     if (b != LF) {
                         throw new RedisunException("Invalid double format: missing LF after CR");
@@ -77,7 +73,7 @@ public class Doubles extends RESP<Double> {
                     return true;
             }
         }
-        
+
         return false;
     }
 
@@ -102,7 +98,7 @@ public class Doubles extends RESP<Double> {
         if (value == null) {
             throw new IOException("Double value is null");
         }
-        
+
         // 写入Double类型标识符
         writeBuffer.write(RESP_DATA_TYPE_DOUBLE);
         // 写入数值
