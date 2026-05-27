@@ -99,7 +99,7 @@ export default defineConfig({
                     translations: {
                         'en': 'About',
                     },
-                    autogenerate: {directory: 'guides'},
+                    items:[{autogenerate: {directory: 'guides'}}]
                 },
                 {
                     label: 'Redis指令',
@@ -112,56 +112,56 @@ export default defineConfig({
                             translations: {
                                 'en': 'Generic',
                             },
-                            autogenerate: {directory: 'cmd/generic'},
+                            items:[{autogenerate: {directory: 'cmd/generic'}}]
                         },
                         {
                             label: '字符串',
                             translations: {
                                 'en': 'String',
                             },
-                            autogenerate: {directory: 'cmd/string'},
+                            items:[{autogenerate: {directory: 'cmd/string'}}]
                         },
                         {
                             label: '列表',
                             translations: {
                                 'en': 'List',
                             },
-                            autogenerate: {directory: 'cmd/list'},
+                            items:[{autogenerate: {directory: 'cmd/list'}}]
                         },
                         {
                             label: '集合',
                             translations: {
                                 'en': 'Set',
                             },
-                            autogenerate: {directory: 'cmd/set'},
+                            items:[{autogenerate: {directory: 'cmd/set'}}]
                         },
                         {
                             label: '有序集合',
                             translations: {
                                 'en': 'Sorted Set',
                             },
-                            autogenerate: {directory: 'cmd/sorted_set'},
+                            items:[{autogenerate: {directory: 'cmd/sorted_set'}}]
                         },
                         {
                             label: '哈希',
                             translations: {
                                 'en': 'Hash',
                             },
-                            autogenerate: {directory: 'cmd/hash'},
+                            items:[{autogenerate: {directory: 'cmd/hash'}}]
                         },
                         {
                             label: '发布/订阅',
                             translations: {
                                 'en': 'Pub/Sub',
                             },
-                            autogenerate: {directory: 'cmd/pubsub'},
+                            items:[{autogenerate: {directory: 'cmd/pubsub'}}]
                         },
                         {
                             label: '其他',
                             translations: {
                                 'en': 'Other',
                             },
-                            autogenerate: {directory: 'cmd/server'},
+                            items:[{autogenerate: {directory: 'cmd/server'}}]
                         },
                     ],
                     // autogenerate: {directory: 'cmd'},
