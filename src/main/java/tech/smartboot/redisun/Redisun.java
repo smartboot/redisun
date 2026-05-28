@@ -382,6 +382,24 @@ public final class Redisun {
         throw new RedisunException("invalid response:" + resp);
     };
 
+    private static final Function<RESP, List<String>> BULK_STRING_LIST_FUTURE = resp -> {
+        if (resp instanceof Arrays) {
+            List<RESP> resps = ((Arrays) resp).getValue();
+            List<String> result = new ArrayList<>(resps.size());
+            for (RESP r : resps) {
+                if (r instanceof Nulls) {
+                    result.add(null);
+                } else if (r instanceof BulkStrings) {
+                    result.add(((BulkStrings) r).getValue());
+                } else {
+                    throw new RedisunException("invalid response:" + r);
+                }
+            }
+            return result;
+        }
+        throw new RedisunException("invalid response:" + resp);
+    };
+
     /**
      * 同时获取一个或多个 key 的值
      *
@@ -407,23 +425,7 @@ public final class Redisun {
         for (int i = 0; i < keys.size(); i++) {
             params[i + 1] = RESP.ofString(keys.get(i));
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Arrays) {
-                List<RESP> resps = ((Arrays) resp).getValue();
-                List<String> result = new ArrayList<>(resps.size());
-                for (RESP r : resps) {
-                    if (r instanceof Nulls) {
-                        result.add(null);
-                    } else if (r instanceof BulkStrings) {
-                        result.add(((BulkStrings) r).getValue());
-                    } else {
-                        throw new RedisunException("invalid response:" + r);
-                    }
-                }
-                return result;
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(BULK_STRING_LIST_FUTURE);
     }
 
     /**
@@ -787,23 +789,7 @@ public final class Redisun {
         for (int i = 0; i < fields.size(); i++) {
             params[i + 2] = RESP.ofString(fields.get(i));
         }
-        return execute(new SimpleCommand(params)).thenApply(resp -> {
-            if (resp instanceof Arrays) {
-                List<RESP> resps = ((Arrays) resp).getValue();
-                List<String> result = new ArrayList<>(resps.size());
-                for (RESP r : resps) {
-                    if (r instanceof Nulls) {
-                        result.add(null);
-                    } else if (r instanceof BulkStrings) {
-                        result.add(((BulkStrings) r).getValue());
-                    } else {
-                        throw new RedisunException("invalid response:" + r);
-                    }
-                }
-                return result;
-            }
-            throw new RedisunException("invalid response:" + resp);
-        });
+        return execute(new SimpleCommand(params)).thenApply(BULK_STRING_LIST_FUTURE);
     }
 
     /**
