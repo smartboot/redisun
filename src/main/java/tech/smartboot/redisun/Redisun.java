@@ -420,12 +420,7 @@ public final class Redisun {
         if (keys.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        BulkStrings[] params = new BulkStrings[keys.size() + 1];
-        params[0] = SimpleCommand.CONSTANTS_MGET;
-        for (int i = 0; i < keys.size(); i++) {
-            params[i + 1] = RESP.ofString(keys.get(i));
-        }
-        return execute(new SimpleCommand(params)).thenApply(BULK_STRING_LIST_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_MGET, keys.toArray(new String[0]))).thenApply(BULK_STRING_LIST_FUTURE);
     }
 
     /**
@@ -782,14 +777,8 @@ public final class Redisun {
      * @param fields 要获取值的字段列表
      * @return 包含所有字段值的列表，不存在的字段返回 null
      */
-    public CompletableFuture<List<String>> asyncHmget(String key, List<String> fields) {
-        BulkStrings[] params = new BulkStrings[fields.size() + 2];
-        params[0] = SimpleCommand.CONSTANTS_HMGET;
-        params[1] = RESP.ofString(key);
-        for (int i = 0; i < fields.size(); i++) {
-            params[i + 2] = RESP.ofString(fields.get(i));
-        }
-        return execute(new SimpleCommand(params)).thenApply(BULK_STRING_LIST_FUTURE);
+    public CompletableFuture<List<String>> asyncHmget(String key, String... fields) {
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_HMGET, key, fields)).thenApply(BULK_STRING_LIST_FUTURE);
     }
 
     /**
@@ -799,8 +788,8 @@ public final class Redisun {
      * @param fields 要获取值的字段数组
      * @return 包含所有字段值的列表，不存在的字段返回 null
      */
-    public CompletableFuture<List<String>> asyncHmget(String key, String... fields) {
-        return asyncHmget(key, java.util.Arrays.asList(fields));
+    public CompletableFuture<List<String>> asyncHmget(String key, List<String> fields) {
+        return asyncHmget(key, fields.toArray(new String[0]));
     }
 
     /**
