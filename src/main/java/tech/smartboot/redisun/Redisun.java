@@ -335,6 +335,9 @@ public final class Redisun {
      * @return 包含操作是否成功的CompletableFuture
      */
     public CompletableFuture<Boolean> asyncSet(String key, String value, Consumer<SetCommand> options) {
+        if (key == null || value == null) {
+            throw new NullPointerException();
+        }
         SetCommand cmd = new SetCommand(key, value);
         if (options != null) {
             options.accept(cmd);
