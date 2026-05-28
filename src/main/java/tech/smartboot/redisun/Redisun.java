@@ -168,13 +168,7 @@ public final class Redisun {
      * @return 被成功移除的成员数量
      */
     public CompletableFuture<Long> asyncZrem(String key, String... members) {
-        BulkStrings[] params = new BulkStrings[members.length + 2];
-        params[0] = SimpleCommand.CONSTANTS_ZREM;
-        params[1] = RESP.ofString(key);
-        for (int i = 0; i < members.length; i++) {
-            params[i + 2] = RESP.ofString(members[i]);
-        }
-        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_ZREM, key, members)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -632,13 +626,7 @@ public final class Redisun {
      * @return 被成功添加到集合中的新元素数量，不包括已被添加的元素
      */
     public CompletableFuture<Integer> asyncSadd(String key, String... members) {
-        BulkStrings[] params = new BulkStrings[members.length + 2];
-        params[0] = SimpleCommand.CONSTANTS_SADD;
-        params[1] = RESP.ofString(key);
-        for (int i = 0; i < members.length; i++) {
-            params[i + 2] = RESP.ofString(members[i]);
-        }
-        return execute(new SimpleCommand(params)).thenApply(INTEGER_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_SADD, key, members)).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -660,13 +648,7 @@ public final class Redisun {
      * @return 执行后列表的长度
      */
     public CompletableFuture<Long> asyncLpush(String key, String... values) {
-        BulkStrings[] params = new BulkStrings[values.length + 2];
-        params[0] = SimpleCommand.CONSTANTS_LPUSH;
-        params[1] = RESP.ofString(key);
-        for (int i = 0; i < values.length; i++) {
-            params[i + 2] = RESP.ofString(values[i]);
-        }
-        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_LPUSH, key, values)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -688,13 +670,7 @@ public final class Redisun {
      * @return 执行后列表的长度
      */
     public CompletableFuture<Long> asyncRpush(String key, String... values) {
-        BulkStrings[] params = new BulkStrings[values.length + 2];
-        params[0] = SimpleCommand.CONSTANTS_RPUSH;
-        params[1] = RESP.ofString(key);
-        for (int i = 0; i < values.length; i++) {
-            params[i + 2] = RESP.ofString(values[i]);
-        }
-        return execute(new SimpleCommand(params)).thenApply(LONG_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_RPUSH, key, values)).thenApply(LONG_FUTURE);
     }
 
     /**
@@ -985,12 +961,7 @@ public final class Redisun {
      * @return 包含存在键数量的CompletableFuture
      */
     public CompletableFuture<Integer> asyncExists(String... keys) {
-        BulkStrings[] params = new BulkStrings[keys.length + 1];
-        params[0] = SimpleCommand.CONSTANTS_EXISTS;
-        for (int i = 0; i < keys.length; i++) {
-            params[i + 1] = RESP.ofString(keys[i]);
-        }
-        return execute(new SimpleCommand(params)).thenApply(INTEGER_FUTURE);
+        return execute(new SimpleCommand(SimpleCommand.CONSTANTS_EXISTS, keys)).thenApply(INTEGER_FUTURE);
     }
 
     /**
@@ -1178,12 +1149,7 @@ public final class Redisun {
             AioSession session = pubSub.getClient().getSession();
             // 执行订阅命令
             synchronized (pubSub.getClient()) {
-                BulkStrings[] params = new BulkStrings[channels.length + 1];
-                params[0] = SimpleCommand.CONSTANTS_UNSUBSCRIBE;
-                for (int i = 0; i < channels.length; i++) {
-                    params[i + 1] = RESP.ofString(channels[i]);
-                }
-                new SimpleCommand(params).writeTo(session.writeBuffer());
+                new SimpleCommand(SimpleCommand.CONSTANTS_UNSUBSCRIBE, channels).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1211,12 +1177,7 @@ public final class Redisun {
             AioSession session = redisunPubSub.getClient().getSession();
             // 执行频道订阅命令
             synchronized (redisunPubSub.getClient()) {
-                BulkStrings[] params = new BulkStrings[channels.length + 1];
-                params[0] = SimpleCommand.CONSTANTS_SUBSCRIBE;
-                for (int i = 0; i < channels.length; i++) {
-                    params[i + 1] = RESP.ofString(channels[i]);
-                }
-                new SimpleCommand(params).writeTo(session.writeBuffer());
+                new SimpleCommand(SimpleCommand.CONSTANTS_SUBSCRIBE, channels).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1244,12 +1205,7 @@ public final class Redisun {
             AioSession session = redisunPubSub.getClient().getSession();
             // 执行模式订阅命令
             synchronized (redisunPubSub.getClient()) {
-                BulkStrings[] params = new BulkStrings[patterns.length + 1];
-                params[0] = SimpleCommand.CONSTANTS_PSUBSCRIBE;
-                for (int i = 0; i < patterns.length; i++) {
-                    params[i + 1] = RESP.ofString(patterns[i]);
-                }
-                new SimpleCommand(params).writeTo(session.writeBuffer());
+                new SimpleCommand(SimpleCommand.CONSTANTS_PSUBSCRIBE, patterns).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {
@@ -1270,12 +1226,7 @@ public final class Redisun {
             AioSession session = pubSub.getClient().getSession();
             // 执行订阅命令
             synchronized (pubSub.getClient()) {
-                BulkStrings[] params = new BulkStrings[patterns.length + 1];
-                params[0] = SimpleCommand.CONSTANTS_PUNSUBSCRIBE;
-                for (int i = 0; i < patterns.length; i++) {
-                    params[i + 1] = RESP.ofString(patterns[i]);
-                }
-                new SimpleCommand(params).writeTo(session.writeBuffer());
+                new SimpleCommand(SimpleCommand.CONSTANTS_PUNSUBSCRIBE, patterns).writeTo(session.writeBuffer());
             }
             session.writeBuffer().flush();
         } catch (Throwable e) {

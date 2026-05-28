@@ -360,6 +360,24 @@ class SimpleCommand extends Command {
         this.arrays = arrays;
     }
 
+    public SimpleCommand(BulkStrings cmd, String key, String... values) {
+        this.arrays = new BulkStrings[values.length + 2];
+        arrays[0] = cmd;
+        arrays[1] = RESP.ofString(key);
+        for (int i = 0; i < arrays.length; i++) {
+            arrays[i + 2] = RESP.ofString(values[i]);
+        }
+    }
+
+
+    public SimpleCommand(BulkStrings cmd, String[] keys) {
+        this.arrays = new BulkStrings[keys.length + 1];
+        arrays[0] = cmd;
+        for (int i = 0; i < arrays.length; i++) {
+            arrays[i + 1] = RESP.ofString(keys[i]);
+        }
+    }
+
     @Override
     protected List<BulkStrings> buildParams() {
         throw new UnsupportedOperationException();
