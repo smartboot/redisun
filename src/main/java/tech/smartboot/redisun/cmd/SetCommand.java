@@ -49,9 +49,9 @@ public class SetCommand extends Command {
 
     private static final byte[] PART = new byte[]{'\r', '\n', RESP.RESP_DATA_TYPE_BULK};
     // 要设置的键
-    private final byte[] key;
+    private final String key;
     // 要设置的值
-    private final byte[] value;
+    private final String value;
     // NX/XX选项，控制键是否存在的行为
     private BulkStrings exists;
     // 过期时间选项的处理器
@@ -66,8 +66,8 @@ public class SetCommand extends Command {
      * @param value 值
      */
     public SetCommand(String key, String value) {
-        this.key = key.getBytes();
-        this.value = value.getBytes();
+        this.key = key;
+        this.value = value;
     }
 
     /**
@@ -101,16 +101,14 @@ public class SetCommand extends Command {
             super.writeTo(writeBuffer);
             return;
         }
-//        if (key.length < FAST_HEADER.length) {
-//            writeBuffer.write(FAST_HEADER[key.length]);
-//        } else {
         writeBuffer.write(HEADER);
-        RESP.writeInt(writeBuffer, key.length);
-//        }
-        writeBuffer.write(key);
+        byte[] bytes = key.getBytes();
+        RESP.writeInt(writeBuffer, bytes.length);
+        writeBuffer.write(bytes);
         writeBuffer.write(PART);
-        RESP.writeInt(writeBuffer, value.length);
-        writeBuffer.write(value);
+        bytes = value.getBytes();
+        RESP.writeInt(writeBuffer, bytes.length);
+        writeBuffer.write(bytes);
         writeBuffer.write(RESP.CRLF);
     }
 

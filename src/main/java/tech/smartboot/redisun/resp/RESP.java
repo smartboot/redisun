@@ -201,25 +201,6 @@ public abstract class RESP<T> implements Serialization {
         return bulkStringResponse;
     }
 
-    public static BulkStrings ofString(final byte[] bytes) {
-        BulkStrings bulkStringResponse = new BulkStrings() {
-            @Override
-            public void writeTo(WriteBuffer writeBuffer) throws IOException {
-                // 写入Bulk String类型标识符
-                writeBuffer.write(RESP_DATA_TYPE_BULK);
-                // 写入字符串长度
-                writeInt(writeBuffer, bytes.length);
-                // 写入字符串数据
-                writeBuffer.write(bytes);
-                // 写入行终止符
-                writeBuffer.write(CRLF);
-            }
-
-        };
-        return bulkStringResponse;
-    }
-
-
     /**
      * 创建包含指定RESP列表的Arrays对象
      *
