@@ -364,7 +364,7 @@ class SimpleCommand extends Command {
         this.arrays = new BulkStrings[values.length + 2];
         arrays[0] = cmd;
         arrays[1] = RESP.ofString(key);
-        for (int i = 0; i < arrays.length; i++) {
+        for (int i = 0; i < values.length; i++) {
             arrays[i + 2] = RESP.ofString(values[i]);
         }
     }
@@ -373,7 +373,7 @@ class SimpleCommand extends Command {
     public SimpleCommand(BulkStrings cmd, String[] keys) {
         this.arrays = new BulkStrings[keys.length + 1];
         arrays[0] = cmd;
-        for (int i = 0; i < arrays.length; i++) {
+        for (int i = 0; i < keys.length; i++) {
             arrays[i + 1] = RESP.ofString(keys[i]);
         }
     }
