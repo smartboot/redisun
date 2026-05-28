@@ -164,6 +164,9 @@ public abstract class RESP<T> implements Serialization {
      * @throws RedisunException 当不支持的数据类型时抛出异常
      */
     public static RESP newInstance(ByteBuffer buffer) {
+        if (buffer.remaining() == 0) {
+            return null;
+        }
         byte type = buffer.get();
         if (type == RESP_DATA_TYPE_BULK) {
             return new BulkStrings();

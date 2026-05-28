@@ -46,9 +46,9 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
     @Override
     public RESP decode(ByteBuffer readBuffer, AioSession session) {
         // 至少需要2个字节才能开始解析(类型标识符+至少1个数据字节)
-        if (readBuffer.remaining() < 2) {
-            return null;
-        }
+//        if (readBuffer.remaining() < 2) {
+//            return null;
+//        }
 
         // 获取当前会话关联的Redis会话对象
         RedisSession redisSession = session.getAttachment();
@@ -57,6 +57,9 @@ class RedisMessageProcessor extends AbstractMessageProcessor<RESP> implements Pr
         if (redisResponse == null) {
             // 根据第一个字节确定RESP数据类型并创建对应实例
             redisResponse = RESP.newInstance(readBuffer);
+            if (redisResponse == null) {
+                return null;
+            }
             redisSession.setDecodingResponse(redisResponse);
         }
 

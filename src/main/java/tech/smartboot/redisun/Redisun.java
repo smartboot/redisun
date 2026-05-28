@@ -474,6 +474,9 @@ public final class Redisun {
             while (e.getCause() != null) {
                 e = e.getCause();
             }
+            if (e.getMessage() == null) {
+                throw new RedisunException(e);
+            }
             throw new RedisunException(e.getMessage());
         }
     }
